@@ -1,0 +1,128 @@
+---
+title: "Grasshoppers - Clips Version 2.0"
+author: "Alex"
+date: "25/11/2019"
+output: html_document
+---
+
+
+```{r setup}
+library(RPostgreSQL)
+library(DBI)
+library(dplyr)
+library(tuneR)
+library(seewave)
+library(bioacoustics)
+library(tools)
+
+pw<-{
+  "AlexTheLion"}
+
+drv<-dbDriver("PostgreSQL")
+con<-dbConnect(drv, dbname="wildtrax", host="prod.wildtrax.ca", port="5432", user='abmiviewer', password=pw)
+rm(pw)
+```
+
+```{sql, connection=con, output.var="grasshoppers"}
+
+with grasshoppers as (select
+  task_id,
+  species_code,
+  project_full_nm,
+  recording_file_name,
+  recording_file_path || '/' || recording_file_name || '.' || recording_file_type as mp3_source,
+  recording_source_file_path as original_source,
+  aru.get_tag_start_time(tag_id) as tag_start_time,
+  aru.get_tag_length(tag_id) as tag_length
+from aru.task
+inner join aru.species_individual on si_task_id = task_id
+inner join aru.tag on tag_species_individual_id = si_id
+inner join aru.lu_species on species_code = si_species_code
+inner join common.project on project_id = task_project_id
+inner join aru.recording on recording_id = task_recording_id
+inner join common.station on station_id = recording_station_id
+where species_code like 'OVEN' and project_full_nm like 'Wetlands 2019')
+select * from grasshoppers;
+
+```
+
+```{sql connection=con, output.var="crickets"}
+
+select distinct t.id, data_set, site, station, english_name, code, unique_name, abundance, confidence, project_full_name, longitude, latitude
+from species_individual si
+inner join task t on si.task_id = t.id
+inner join recording r on r.file_name = t.recording_file_name
+where code like 'YERA';
+
+
+```
+
+```{r}
+
+# We're going to do this in R. 
+
+src_dbi(con)
+
+spec_individ <- dplyr::tbl(con, dbplyr::in_schema("aru", "species_individual"))
+recording <- dplyr::tbl(con, dbplyr::in_schema("aru", "recording"))
+task <- dplyr::tbl(con, dbplyr::in_schema("aru", "task"))
+
+# these are database objects -> not the physical download of the data (yet!)
+
+yera_test <- spec_individ %>%
+  inner_join(task, by = c("si_task_id" = "task_id")) %>%
+  inner_join(recording, by = c("task_recording_id" = "recording_id")) %>%
+  filter(si_species_code == "YERA") %>%
+  # Retrieve the data for use in R
+  collect()
+
+```
+
+
+```{r Clean up Dataframe and export clips}
+
+grasshoppers$original_source<-as.character(grasshoppers$original_source)
+grasshoppers$mp3_source<-as.character(grasshoppers$mp3_source)
+grasshoppers$tag_end_time<-grasshoppers$tag_start_time+grasshoppers$tag_length
+grasshoppers$tag_start_time<-grasshoppers$tag_start_time-5
+grasshoppers$tag_end_time<-grasshoppers$tag_end_time+5
+grasshoppers$tag_start_time<-ifelse(grasshoppers$tag_start_time<0.00,0,grasshoppers$tag_start_time)
+grasshoppers$tag_end_time<-ifelse(grasshoppers$tag_end_time>180,180,grasshoppers$tag_end_time)
+grasshoppers$mp3_source<-sub("media", "Volumes", grasshoppers$mp3_source)
+grasshoppers$original_source<-sub("media", "Volumes", grasshoppers$original_source)
+grasshoppers$ext<-as.character(file_ext(grasshoppers$original_source))
+
+writedir='/Volumes/BUdata03/BayneLabWorkSpace/ListeningCrew/CamAudTest/DEMO-OVEN-1'
+
+for (i in 1:nrow(grasshoppers)) {
+  tmp <- tryCatch(
+    (if (grasshoppers$ext[i]=='wac') {
+      read_wac(grasshoppers$original_source[i], write_wav=writedir)
+    } else {
+      readWave(grasshoppers$original_source[i],from=grasshoppers$tag_start_time[i],to=grasshoppers$tag_end_time[i],units="seconds")
+    }),
+    error=function(e) {
+        msg<-conditionMessage(e)
+        print(paste0(msg, grasshoppers$recording_file_name[i], sep=' '))}
+    )
+  outfile<-sub("^(.*?)\\.", paste(grasshoppers$species_code[i],"-",grasshoppers$task_id[i],"-",grasshoppers$tag_start_time[i],".",sep=""), grasshoppers$original_source)
+  outpath<-file.path(writedir, basename(outfile))
+  writefiles <- tryCatch(
+    writeWave(tmp, filename=outpath[i], extensible=FALSE), 
+    error=function(f) {
+      msg2<-conditionMessage(f)
+      print(paste0(msg2, grasshoppers$recording_file_name[i], sep=' '))
+    })
+}
+
+```
+
+
+```{r}
+
+system('pwd')
+system('cd /Volumes/BUdata03/BayneLabWorkSpace/ListeningCrew/CamAudTest/DEMO-OVEN-1 && for file in *.wav; do outfile="${file%.*}.jpg"; sox "$file" -n spectrogram -l -m -o "$outfile"; done', intern=TRUE) 
+
+```
+
+

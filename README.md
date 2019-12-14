@@ -1,2 +1,5 @@
 # wildtrax
-An R package for querying data from the Wildtrax database
+
+An R package to help endusers query the Wildtrax Postgres database.
+
+
