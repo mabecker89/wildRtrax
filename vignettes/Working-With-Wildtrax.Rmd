@@ -1,0 +1,19 @@
+---
+title: "Working-With-Wildtrax"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Working-With-Wildtrax}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(wildtrax)
+```
