@@ -1,0 +1,95 @@
+---
+title: "Caterpillars"
+author: "Marcus Becker"
+date: "December 16, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+# Load packages
+
+library(DBI)
+library(dbplyr)
+library(dplyr)
+library(dbplot)
+library(ggplot2)
+library(modeldb)
+library(tidypredict)
+library(config)
+library(odbc)
+library(keyring)
+library(here)
+
+# Load source functions (for now)
+source(here("./R/connections.R"))
+
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+First step is to connect to the Wildtrax database. We'll use secured credentials via the `keyring` package, plus the `wt_con` function.
+
+```{r}
+
+wildtrax_con <- wt_con(db = "wildtrax", 
+                    user = key_get("user", keyring = "wildtrax"),
+                    password = key_get("password", keyring = "wildtrax"))
+
+src_dbi(wt_con_2)
+
+```
+
+Now let's explore the Wildtrax database
+
+```{r}
+
+# List tables
+dbListTables(wildtrax_con) # 87 tables
+# List tables associated with a specific schema - e.g. aru schema
+dbGetQuery(wildtrax_con, "SELECT table_name FROM information_schema.tables WHERE table_schema='aru'")
+# List fields associated with a table
+dbListFields(wildtrax_con, c("aru", "species_individual")) 
+
+```
+
+Queries
+
+```{r}
+
+spec_individ <- dplyr::tbl(wildtrax_con, dbplyr::in_schema("aru", "species_individual"))
+recording <- dplyr::tbl(wildtrax_con, dbplyr::in_schema("aru", "recording"))
+task <- dplyr::tbl(wildtrax_con, dbplyr::in_schema("aru", "task"))
+
+# these are database objects -> not the physical download of the data (yet!)
+
+yera_test <- spec_individ %>%
+  inner_join(task, by = c("si_task_id" = "task_id")) %>%
+  inner_join(recording, by = c("task_recording_id" = "recording_id")) %>%
+  filter(si_species_code == "YERA") %>%
+  # Retrieve the data for use in R
+  collect()
+
+```
+
+Ideas for functions:
+
++ generic wildtrax connection function.
++ get_widltrax_data() - take a connection, build joins using dplyr syntax, does the joins, and return a tibble that's a pointer to the database. Tibble can be used from there.
+
+```{r}
+
+```
+
+Disconnect from the Wildtrax database
+
+```{r}
+
+DBI::dbDisconnect(wt_con)
+
+```
+
+
+
+
+
