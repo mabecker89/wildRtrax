@@ -5,7 +5,7 @@ date: "December 16, 2019"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include=FALSE, warning=FALSE}
 
 # Load packages
 
@@ -23,7 +23,9 @@ library(keyring)
 library(here)
 
 # Load source functions (for now)
-source(here("./R/connections.R"))
+source(here("./R/wt_con.R"))
+source(here("./R/wt_collect_table.R"))
+source(here("./R/wt_collect_cam_meta.R"))
 
 knitr::opts_chunk$set(echo = TRUE)
 
@@ -33,10 +35,12 @@ First step is to connect to the Wildtrax database. We'll use secured credentials
 
 ```{r}
 
+# Establish connection
 wildtrax_con <- wt_con(db = "wildtrax", 
-                    user = key_get("user", keyring = "wildtrax"),
-                    password = key_get("password", keyring = "wildtrax"))
+                       user = key_get("user", keyring = "wildtrax"),
+                       password = key_get("password", keyring = "wildtrax"))
 
+# List source and tables
 src_dbi(wildtrax_con)
 
 ```
@@ -54,15 +58,14 @@ dbListFields(wildtrax_con, c("aru", "species_individual"))
 
 ```
 
-Queries
+Example Queries
 
 ```{r}
 
+# these are database objects -> not the physical download of the data (yet!)
 spec_individ <- dplyr::tbl(wildtrax_con, dbplyr::in_schema("aru", "species_individual"))
 recording <- dplyr::tbl(wildtrax_con, dbplyr::in_schema("aru", "recording"))
 task <- dplyr::tbl(wildtrax_con, dbplyr::in_schema("aru", "task"))
-
-# these are database objects -> not the physical download of the data (yet!)
 
 yera_test <- spec_individ %>%
   inner_join(task, by = c("si_task_id" = "task_id")) %>%
@@ -75,64 +78,13 @@ yera_test <- spec_individ %>%
 
 Ideas for functions:
 
-+ generic wildtrax connection function.
-+ get_widltrax_data() - take a connection, build joins using dplyr syntax, does the joins, and return a tibble that's a pointer to the database. Tibble can be used from there.
++ generic wildtrax connection function -> wt_con()
++ collect a table from a specified schema -> wt_collect_table()
++ collect camera/aru metadata -> wt_collect_cam_meta()
 
 ```{r}
 
-# Some basic functions:
-
-# Collect a table from a specified schema
-collect_table <- function(con, schema, table) {
-  # Define database object
-  db_object <- dplyr::tbl(con, dbplyr::in_schema(schema, table))
-  # Collect data from database
-  collect(db_object)
-}
-
-# Test it out with deployments metadata
-deployments_metadata <- collect_table(wildtrax_con, schema = "camera", table = "deployment")
-
-
-
-db_deployment <- dplyr::tbl(wildtrax_con, dbplyr::in_schema(schema = "camera", table = "deployment"))
-db_station <- dplyr::tbl(wildtrax_con, dbplyr::in_schema(schema = "common", table = "station"))
-db_site <- dplyr::tbl(wildtrax_con, dbplyr::in_schema(schema = "common", table = "site"))
-
-test <- db_site %>%
-    left_join(db_station, by = c("site_id" = "station_site_id")) %>%
-    collect()  
-  
-    left_join(db_deployment, by = c("station_id" = "deployment_station_id")) %>%
-    filter(str_detect(deployment_alias_name, "^ABMI"),
-           deployment_year == "2016") %>%
-    select(deployment_alias_name, deployment_year, site_public_latitude, site_public_latitude) %>%
-    collect()
-
-
-# Collect simple ABMI camera deployment metadata by year - public lat/long, etc(?)
-
-collect_abmi_camera_metadata <- function(con, year = c("2015", "2016", "2017", "2018")) {
-  
-  # Define database objects
-  db_deployment <- dplyr::tbl(con, dbplyr::in_schema(schema = "camera", table = "deployment"))
-  db_station <- dplyr::tbl(con, dbplyr::in_schema(schema = "common", table = "station"))
-  db_site <- dplyr::tbl(con, dbplyr::in_schema(schema = "common", table = "site"))
-  
-  # Match arguments
-  year <- match.arg(year)
-  
-  # Create query
-  db_site %>%
-    left_join(db_station, by = c("site_id" = "station_site_id")) %>%
-    left_join(db_deployment, by = c("station_id" = "deployment_station_id")) %>%
-    filter(str_detect(deployment_alias_name, "^ABMI"),
-           deployment_year == year) %>%
-    select(deployment_alias_name, deployment_year, site_public_latitude, site_public_latitude) %>%
-    collect()
-}
-
-abmi_2016 <- collect_abmi_camera_metadata(con = wildtrax_con, year = "2014")
+abmi_2016 <- wt_collect_cam_meta(con = wildtrax_con, year = "2016", project = "ABMI 2016")
 
 ```
 
