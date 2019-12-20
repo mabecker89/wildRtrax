@@ -36,8 +36,7 @@ First step is to connect to the Wildtrax database. We'll use secured credentials
 ```{r}
 
 # Establish connection
-wildtrax_con <- wt_con(db = "wildtrax", 
-                       user = key_get("user", keyring = "wildtrax"),
+wildtrax_con <- wt_con(username = key_get("user", keyring = "wildtrax"),
                        password = key_get("password", keyring = "wildtrax"))
 
 # List source and tables
@@ -84,6 +83,10 @@ Ideas for functions:
 
 ```{r}
 
+# Retrieving a table
+deployments <- wt_collect_table(con = wildtrax_con, schema = "camera", table = "deployment")
+
+# Collecting camera metadata
 abmi_2016 <- wt_collect_cam_meta(con = wildtrax_con, year = "2016", project = "ABMI 2016")
 
 ```

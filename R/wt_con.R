@@ -19,7 +19,7 @@ wt_con <- function(username, password){
     dbname = "wildtrax",
     host = "prod.wildtrax.ca",
     port = "5432",
-    user = user,
+    user = username,
     password = password
   )
   con
