@@ -10,6 +10,7 @@ output: html_document
 # Load packages
 
 library(DBI)
+library(RPostgreSQL)
 library(dbplyr)
 library(dplyr)
 library(dbplot)
@@ -36,11 +37,11 @@ wildtrax_con <- wt_con(db = "wildtrax",
                     user = key_get("user", keyring = "wildtrax"),
                     password = key_get("password", keyring = "wildtrax"))
 
-src_dbi(wt_con_2)
+src_dbi(wildtrax_con)
 
 ```
 
-Now let's explore the Wildtrax database
+Now let's explore the Wildtrax database:
 
 ```{r}
 
@@ -78,6 +79,60 @@ Ideas for functions:
 + get_widltrax_data() - take a connection, build joins using dplyr syntax, does the joins, and return a tibble that's a pointer to the database. Tibble can be used from there.
 
 ```{r}
+
+# Some basic functions:
+
+# Collect a table from a specified schema
+collect_table <- function(con, schema, table) {
+  # Define database object
+  db_object <- dplyr::tbl(con, dbplyr::in_schema(schema, table))
+  # Collect data from database
+  collect(db_object)
+}
+
+# Test it out with deployments metadata
+deployments_metadata <- collect_table(wildtrax_con, schema = "camera", table = "deployment")
+
+
+
+db_deployment <- dplyr::tbl(wildtrax_con, dbplyr::in_schema(schema = "camera", table = "deployment"))
+db_station <- dplyr::tbl(wildtrax_con, dbplyr::in_schema(schema = "common", table = "station"))
+db_site <- dplyr::tbl(wildtrax_con, dbplyr::in_schema(schema = "common", table = "site"))
+
+test <- db_site %>%
+    left_join(db_station, by = c("site_id" = "station_site_id")) %>%
+    collect()  
+  
+    left_join(db_deployment, by = c("station_id" = "deployment_station_id")) %>%
+    filter(str_detect(deployment_alias_name, "^ABMI"),
+           deployment_year == "2016") %>%
+    select(deployment_alias_name, deployment_year, site_public_latitude, site_public_latitude) %>%
+    collect()
+
+
+# Collect simple ABMI camera deployment metadata by year - public lat/long, etc(?)
+
+collect_abmi_camera_metadata <- function(con, year = c("2015", "2016", "2017", "2018")) {
+  
+  # Define database objects
+  db_deployment <- dplyr::tbl(con, dbplyr::in_schema(schema = "camera", table = "deployment"))
+  db_station <- dplyr::tbl(con, dbplyr::in_schema(schema = "common", table = "station"))
+  db_site <- dplyr::tbl(con, dbplyr::in_schema(schema = "common", table = "site"))
+  
+  # Match arguments
+  year <- match.arg(year)
+  
+  # Create query
+  db_site %>%
+    left_join(db_station, by = c("site_id" = "station_site_id")) %>%
+    left_join(db_deployment, by = c("station_id" = "deployment_station_id")) %>%
+    filter(str_detect(deployment_alias_name, "^ABMI"),
+           deployment_year == year) %>%
+    select(deployment_alias_name, deployment_year, site_public_latitude, site_public_latitude) %>%
+    collect()
+}
+
+abmi_2016 <- collect_abmi_camera_metadata(con = wildtrax_con, year = "2014")
 
 ```
 
