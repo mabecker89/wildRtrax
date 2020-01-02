@@ -1,18 +1,23 @@
 Package: wildtrax
-Title: What the Package Does (One Line, Title Case)
+Title: Functions to query the Wildtrax environmental sensor platform through R
 Version: 0.0.0.9000
 Authors@R: 
-    person(given = "First",
-           family = "Last",
+    person(given = "Marcus",
+           family = "Becker",
            role = c("aut", "cre"),
-           email = "first.last@example.com",
+           email = "mabecker@ualberta.ca",
            comment = c(ORCID = "YOUR-ORCID-ID"))
 Description: What the package does (one paragraph).
 License: What license it uses
 Encoding: UTF-8
 LazyData: true
+Imports:
+    DBI,
+    RPostgreSQL,
+    dbplyr,
+    dplyr
 Suggests: 
     knitr,
     rmarkdown
 VignetteBuilder: knitr
-RoxygenNote: 6.1.1
+RoxygenNote: 7.0.2
