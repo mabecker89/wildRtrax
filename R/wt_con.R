@@ -13,7 +13,7 @@
 #' @author Alex MacPhail
 
 # Establish connection to Wildtrax database
-wt_con <- function(username, password){
+wt_con <- function(username, password) {
     con <- DBI::dbConnect(
     drv = dbDriver("PostgreSQL"),
     dbname = "wildtrax",
