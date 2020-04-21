@@ -1,14 +1,18 @@
-Package: wildtrax
-Title: Functions to query the Wildtrax environmental sensor platform through R
+Package: wildRtrax
+Title: Queries, cleaning, analysis, and quality control of data from the WildTrax database in R
 Version: 0.0.0.9000
 Authors@R: 
-    person(given = "Marcus",
-           family = "Becker",
-           role = c("aut", "cre"),
-           email = "mabecker@ualberta.ca",
-           comment = c(ORCID = "YOUR-ORCID-ID"))
-Description: What the package does (one paragraph).
-License: What license it uses
+    c(person(given = "Marcus",
+             family = "Becker",
+             role = c("aut", "cre"),
+             email = "mabecker@ualberta.ca"),
+      person(given = "Alex",
+             family = "MacPhail",
+             role = "aut",
+             email = "agmacpha@ualberta.ca"))
+Description: This package provides a set of functions to query environmental sensor data from the WildTrax platform, as well as perform basic data cleaning, analysis, and quality control.
+Depends: R (>= 3.5.0)
+License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Imports:
@@ -19,5 +23,7 @@ Imports:
 Suggests: 
     knitr,
     rmarkdown
+URL: https://github.com/mabecker89/wildRtrax
+BugReports: https://github.com/mabecker89/wildRtrax/issues
 VignetteBuilder: knitr
-RoxygenNote: 7.0.2
+RoxygenNote: 7.1.0

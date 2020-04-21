@@ -1,2 +1,5 @@
 ^wildtrax\.Rproj$
 ^\.Rproj\.user$
+^README_files$
+^figure$
+^README\.Rmd$
