@@ -16,13 +16,13 @@ License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Imports:
-    DBI,
+    DBI (>= 0.3.0),
     RPostgreSQL,
-    dbplyr,
-    dplyr
+    methods
 Suggests: 
     knitr,
-    rmarkdown
+    rmarkdown,
+    testthat
 URL: https://github.com/mabecker89/wildRtrax
 BugReports: https://github.com/mabecker89/wildRtrax/issues
 VignetteBuilder: knitr
