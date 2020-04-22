@@ -1,25 +1,36 @@
 
-wildRtrax<img src="man/figures/hex-logo-pipit.png" align="right" />
-===================================================================
+# wildRtrax<img src="man/figures/hex-logo-pipit.png" align="right" />
 
-> Queries, cleaning, analysis, and quality control of data from the WildTrax database in R
+> Queries, cleaning, analysis, and quality control of data from the
+> WildTrax database in R
 
 <!-- badges: start -->
-[![Travis build status](https://travis-ci.org/mabecker89/wildRtrax.svg?branch=master)](https://travis-ci.org/mabecker89/wildRtrax) <!-- badges: end -->
+
+[![Travis build
+status](https://travis-ci.org/mabecker89/wildRtrax.svg?branch=master)](https://travis-ci.org/mabecker89/wildRtrax)
+[![R build
+status](https://github.com/mabecker89/wildRtrax/workflows/R-CMD-check/badge.svg)](https://github.com/mabecker89/wildRtrax/actions)
+<!-- badges: end -->
 
 <br> <br>
 
-Overview
---------
+## Overview
 
-The **wildRtrax** package provides a set of functions to query environmental sensor data from the [WildTrax platform](https://www.wildtrax.ca/home.html), as well as perform basic data cleaning, analysis, and quality control in R.
+The **wildRtrax** package provides a set of functions to query
+environmental sensor data from the [WildTrax
+platform](https://www.wildtrax.ca/home.html), as well as perform basic
+data cleaning, analysis, and quality control in R.
 
-Issues
-------
+## Issues
 
-To report bugs, request additional features, or get help using the package, please file an [issue](https://github.com/mabecker89/wildRtrax/issues). Alternatively, you can email Alex MacPhail <agmacpha@ualberta.ca> or Marcus Becker <mabecker@ualberta.ca>
+To report bugs, request additional features, or get help using the
+package, please file an
+[issue](https://github.com/mabecker89/wildRtrax/issues). Alternatively,
+you can email Alex MacPhail <agmacpha@ualberta.ca> or Marcus Becker
+<mabecker@ualberta.ca>
 
-License
--------
+## License
 
-This R package is licensed under [MIT license](https://github.com/mabecker89/wildRtrax/blob/master/LICENSE) © 2020 Marcus Becker, Alex MacPhail, and the ABMI.
+This R package is licensed under [MIT
+license](https://github.com/mabecker89/wildRtrax/blob/master/LICENSE) ©
+2020 Marcus Becker, Alex MacPhail, and the ABMI.

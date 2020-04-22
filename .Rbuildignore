@@ -4,3 +4,4 @@
 ^figure$
 ^README\.Rmd$
 ^\.travis\.yml$
+^\.github$

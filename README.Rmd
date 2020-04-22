@@ -10,6 +10,7 @@ wildRtrax<img src="man/figures/hex-logo-pipit.png" align="right" />
 
 <!-- badges: start -->
 [![Travis build status](https://travis-ci.org/mabecker89/wildRtrax.svg?branch=master)](https://travis-ci.org/mabecker89/wildRtrax)
+[![R build status](https://github.com/mabecker89/wildRtrax/workflows/R-CMD-check/badge.svg)](https://github.com/mabecker89/wildRtrax/actions)
 <!-- badges: end -->
 
 ```{r setup, include=FALSE}
