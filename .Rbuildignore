@@ -1,4 +1,4 @@
-^wildtrax\.Rproj$
+^.*\.Rproj$
 ^\.Rproj\.user$
 ^README_files$
 ^figure$

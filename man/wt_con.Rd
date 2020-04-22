@@ -2,12 +2,12 @@
 % Please edit documentation in R/wt_con.R
 \name{wt_con}
 \alias{wt_con}
-\title{Establish Connection to Wildtrax PostgreSQL Database}
+\title{Establish Connection to WildTrax PostgreSQL Database}
 \usage{
 wt_con(username, password)
 }
 \arguments{
-\item{username}{A character string indicating the username for access the Wildtrax database}
+\item{username}{A character string indicating the username for accessing the WildTrax database}
 
 \item{password}{A character string indicating the password associated with the supplied username}
 }
@@ -15,10 +15,5 @@ wt_con(username, password)
 This function returns an S4 object of class PostgreSQLConnection
 }
 \description{
-Establish Connection to Wildtrax PostgreSQL Database
-}
-\author{
-Marcus Becker
-
-Alex MacPhail
+Establish Connection to WildTrax PostgreSQL Database
 }
