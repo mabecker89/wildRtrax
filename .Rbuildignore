@@ -3,3 +3,4 @@
 ^README_files$
 ^figure$
 ^README\.Rmd$
+^\.travis\.yml$
