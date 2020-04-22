@@ -18,7 +18,7 @@ LazyData: true
 Imports:
     DBI (>= 0.3.0),
     RPostgreSQL,
-    methods
+    glue
 Suggests: 
     knitr,
     rmarkdown,
