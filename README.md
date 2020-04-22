@@ -2,9 +2,9 @@
 wildRtrax<img src="man/figures/hex-logo-pipit.png" align="right" />
 ===================================================================
 
-> Queries, cleaning, analysis, and quality control of data from the WildTrax database in R
+> Queries, cleaning, analysis, and quality control of data from the WildTrax database in R <!-- badges: start --> [![Travis build status](https://travis-ci.org/mabecker89/wildRtrax.svg?branch=master)](https://travis-ci.org/mabecker89/wildRtrax) <!-- badges: end -->
 
-<br> <br> <br>
+<br> <br>
 
 Overview
 --------
