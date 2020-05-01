@@ -33,7 +33,7 @@ wt_aru_scanner <- function(path0, pattern) {
 
   dfraw$Time <- str_sub(dfraw$Filename, -6) #Get the time substring
 
-  dfraw[order(dfraw$Filename), ] #
+  dfraw[order(dfraw$Filename), ] #Re-order by filename to get the time sequence
 
   #Get year of the data; helps to sort things if multiple years of a station exists Should pull this from the year of the time prefix instead - fix eventually
   dfraw$Year<-as.numeric(vapply(strsplit(as.character(dfraw$Filepath), "/"), `[`, 6, FUN.VALUE=character(1)))
