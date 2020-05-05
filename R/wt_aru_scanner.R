@@ -1,9 +1,9 @@
-#' Scans directories of audio data and returns the date, time, station key, etc, from the filename string
+#' Scans directories of audio data and returns the filepath, filename, file size, date, time, station key, etc, from the filename string and through file.info
 #'
 #' @param path0
 #' @param pattern
 #'
-#' @import stringr
+#' @import stringr base stats lubridate
 #' @return
 #' @export
 #'
@@ -11,13 +11,22 @@
 
 wt_aru_scanner <- function(path0, pattern) {
 
-  dfraw <- as.data.frame(list.files(path = path0,
+  dfraw <- as.data.frame(file.info(list.files(path = path0,
                                     pattern = pattern,
                                     recursive = TRUE,
                                     full.names = TRUE,
-                                    include.dirs = FALSE)) #Create a dataframe that is a list of files defined by path; pattern is regex usually "\\.wac$|\\.wav$|\\.mp3$|\\.flac$"
+                                    include.dirs = FALSE))) #Create a dataframe that is a list of files defined by path; pattern is regex usually "\\.wac$|\\.wav$|\\.mp3$|\\.flac$"
 
   colnames(dfraw)[1] <- "Filepath" #Rename column to Filepath
+
+  setDT(dfraw,keep.rownames = T) #Move rownames to column
+
+  colnames(dfraw)[1]<-"Filepath" #Rename file path column
+
+  dfraw$size<-round(dfraw$size/1000000,2) #Convert to megabytes
+
+  dfraw<-dfraw %>%
+    dplyr::select(Filepath,size)
 
   dfraw$Filename <- basename(gsub("\\..*", "", dfraw$Filepath)) #Get filename from the filepath
 
@@ -41,3 +50,5 @@ wt_aru_scanner <- function(path0, pattern) {
   return(dfraw)
 
 }
+
+wt_aru_scanner('/users/alexandremacphail/desktop/testwav/,'
