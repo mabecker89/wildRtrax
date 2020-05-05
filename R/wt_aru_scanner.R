@@ -1,23 +1,43 @@
+<<<<<<< HEAD
 #' Scans directories of audio data and returns the filepath, filename, file size, date, time, station key, etc, from the filename string and through file.info
+=======
+#' Scans directories of audio data and returns the date, time, station key, etc, from the filename string. Always recursive.
+>>>>>>> b792a41d4838fcf7bb0a8dea7eab8dd452e56820
 #'
 #' @param path0
 #' @param pattern
 #'
+<<<<<<< HEAD
 #' @import stringr base stats lubridate
 #' @return
+=======
+#' @import stringr lubridate base stats
+#' @return Returns a data frame with file paths and corresponding attributes
+>>>>>>> b792a41d4838fcf7bb0a8dea7eab8dd452e56820
 #' @export
 #'
 #' @examples
 
 wt_aru_scanner <- function(path0, pattern) {
 
+<<<<<<< HEAD
   dfraw <- as.data.frame(file.info(list.files(path = path0,
                                     pattern = pattern,
                                     recursive = TRUE,
                                     full.names = TRUE,
                                     include.dirs = FALSE))) #Create a dataframe that is a list of files defined by path; pattern is regex usually "\\.wac$|\\.wav$|\\.mp3$|\\.flac$"
+=======
+  dfraw<-as.data.frame(file.info(list.files(path=path0, pattern=pattern, recursive=TRUE, full.names=TRUE,include.dirs=FALSE))) #Scan directory and return file metadata
+>>>>>>> b792a41d4838fcf7bb0a8dea7eab8dd452e56820
 
-  colnames(dfraw)[1] <- "Filepath" #Rename column to Filepath
+  setDT(dfraw,keep.rownames = T) #Make rownames with path to column
+
+  colnames(dfraw)[1]<-"Filepath"
+
+  dfraw$size<-round(dfraw$size/1000000,2) #Convert size to megabytes
+
+  dfraw<-dfraw %>%
+    dplyr::select(Filepath,size) #Get rid of other columns
 
   setDT(dfraw,keep.rownames = T) #Move rownames to column
 
@@ -39,7 +59,7 @@ wt_aru_scanner <- function(path0, pattern) {
 
   dfraw$Time <- str_sub(dfraw$Filename, -6) #Get the time substring
 
-  dfraw[order(dfraw$Filename), ] #
+  dfraw[order(dfraw$Filename), ] #Re-order by filename to get the time sequence
 
   #Get year of the data; helps to sort things if multiple years of a station exists Should pull this from the year of the time prefix instead - fix eventually
   dfraw$Year<-as.numeric(vapply(strsplit(as.character(dfraw$Filepath), "/"), `[`, 6, FUN.VALUE=character(1)))
