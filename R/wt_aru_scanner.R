@@ -1,43 +1,29 @@
-<<<<<<< HEAD
 #' Scans directories of audio data and returns the filepath, filename, file size, date, time, station key, etc, from the filename string and through file.info
-=======
-#' Scans directories of audio data and returns the date, time, station key, etc, from the filename string. Always recursive.
->>>>>>> b792a41d4838fcf7bb0a8dea7eab8dd452e56820
 #'
 #' @param path0
 #' @param pattern
 #'
-<<<<<<< HEAD
-#' @import stringr base stats lubridate
+#' @import stringr base stats lubridate tuneR R.utils doParallel foreach
 #' @return
-=======
-#' @import stringr lubridate base stats
-#' @return Returns a data frame with file paths and corresponding attributes
->>>>>>> b792a41d4838fcf7bb0a8dea7eab8dd452e56820
 #' @export
 #'
 #' @examples
 
 wt_aru_scanner <- function(path0, pattern) {
 
-<<<<<<< HEAD
+  #Set up progress bar and parallel backend to use many processors
+  pb<- txtProgressBar(min = 0, max = total, style=3)
+  cores = detectCores()
+  cl <- makeCluster(cores[1]-1) #not to overlaod
+  registerDoParrallel(cl)
+
   dfraw <- as.data.frame(file.info(list.files(path = path0,
                                     pattern = pattern,
                                     recursive = TRUE,
                                     full.names = TRUE,
                                     include.dirs = FALSE))) #Create a dataframe that is a list of files defined by path; pattern is regex usually "\\.wac$|\\.wav$|\\.mp3$|\\.flac$"
-=======
-  dfraw<-as.data.frame(file.info(list.files(path=path0, pattern=pattern, recursive=TRUE, full.names=TRUE,include.dirs=FALSE))) #Scan directory and return file metadata
->>>>>>> b792a41d4838fcf7bb0a8dea7eab8dd452e56820
 
-  setDT(dfraw,keep.rownames = T) #Make rownames with path to column
-
-  colnames(dfraw)[1]<-"Filepath"
-
-  dfraw$size<-round(dfraw$size/1000000,2) #Convert size to megabytes
-
-  dfraw<-dfraw %>%
-    dplyr::select(Filepath,size) #Get rid of other columns
+  colnames(dfraw)[1] <- "Filepath" #Rename column to Filepath
 
   setDT(dfraw,keep.rownames = T) #Move rownames to column
 
@@ -59,16 +45,26 @@ wt_aru_scanner <- function(path0, pattern) {
 
   dfraw$Time <- str_sub(dfraw$Filename, -6) #Get the time substring
 
-  dfraw[order(dfraw$Filename), ] #Re-order by filename to get the time sequence
+  dfraw[order(dfraw$Filename), ] #
 
-  #Get year of the data; helps to sort things if multiple years of a station exists Should pull this from the year of the time prefix instead - fix eventually
+  #Get year of the data
   dfraw$Year<-as.numeric(vapply(strsplit(as.character(dfraw$Filepath), "/"), `[`, 6, FUN.VALUE=character(1)))
 
   #Creates an index of all the unique times of the dataframe for each temporal value. So day 1 midnight = 1, day 1 dawn = 4. That way you can pick from the 4th, 5th, recording of the day if you want which would corrrspond to tracking dawn, dusk, etc.
   dfraw$Time_index <- ave(paste(dfraw$Station, dfraw$Julian_Date, dfraw$Year, sep=""), paste(dfraw$Station, dfraw$Julian_Date, dfraw$Year, sep=""), FUN=seq_along)
 
+  #Read all the audio files and return length in seconds; need to add sample rate here too eventually
+  foreach (i=1:nrow(dfraw$Filepath)) %dopar% {
+    dfraw$sound_length<-readWave(i,from=1,to=Inf,units="seconds")
+    setTxtProgressBar(pb,i)
+  }
+
+  #Wrap it up / shut down progress bar and parallel clustering
   return(dfraw)
+  close(pb)
+  stopCluster(cl)
 
 }
 
-wt_aru_scanner('/users/alexandremacphail/desktop/testwav/,'
+
+
