@@ -3,19 +3,28 @@
 #' @param path0
 #' @param pattern
 #'
-#' @import stringr base stats lubridate tuneR R.utils doParallel foreach
+#' @import stringr base stats lubridate tuneR R.utils doParallel foreach tidyverse data.table
 #' @return
 #' @export
 #'
 #' @examples
 
-wt_aru_scanner <- function(path0, pattern) {
+library(stringr)
+library(base)
+library(lubridate)
+library(tuneR)
+library(R.utils)
+library(doParallel)
+library(foreach)
+library(tidyverse)
+library(data.table)
+
+wt_aru_scanner <- function(path0, pattern, dfraw) {
 
   #Set up progress bar and parallel backend to use many processors
-  pb<- txtProgressBar(min = 0, max = total, style=3)
+  pb<- txtProgressBar(min = 0, max = 100, style=3)
   cores = detectCores()
   cl <- makeCluster(cores[1]-1) #not to overlaod
-  registerDoParrallel(cl)
 
   dfraw <- as.data.frame(file.info(list.files(path = path0,
                                     pattern = pattern,
@@ -23,25 +32,29 @@ wt_aru_scanner <- function(path0, pattern) {
                                     full.names = TRUE,
                                     include.dirs = FALSE))) #Create a dataframe that is a list of files defined by path; pattern is regex usually "\\.wac$|\\.wav$|\\.mp3$|\\.flac$"
 
-  colnames(dfraw)[1] <- "Filepath" #Rename column to Filepath
-
   setDT(dfraw,keep.rownames = T) #Move rownames to column
 
-  colnames(dfraw)[1]<-"Filepath" #Rename file path column
+  colnames(dfraw)[1] <- "Filepath" #Rename column to Filepath
 
-  dfraw$size<-round(dfraw$size/1000000,2) #Convert to megabytes
+  dfraw$size<-round(as.numeric(dfraw$size)/1000000,2) #Convert to megabytes
 
   dfraw<-dfraw %>%
-    dplyr::select(Filepath,size)
+  dplyr::select(Filepath,size)
 
-  dfraw$Filename <- basename(gsub("\\..*", "", dfraw$Filepath)) #Get filename from the filepath
+  dfraw$Filepath<-as.character(dfraw$Filepath)
+
+  dfraw$Filename <- paste(basename(gsub("\\..*", "", dfraw$Filepath)),'.wav',sep='') #Get filename from the filepath
 
   dfraw$Station <- ifelse((str_detect(dfraw$Filename, "_0+1_")), #Create the station key; concatenate, dataset, site, station.
                         (str_split_fixed(dfraw$Filename, "_", n=3)),
                         (str_split_fixed(dfraw$Filename, "_", n=2)))
 
-  dfraw$Julian_Date <- yday(as.Date(str_replace(str_sub(str_sub(dfraw$Filename, -15), 1, str_length(str_sub(dfraw$Filename, -15))-7),
-                                                "(\\d{4})(\\d{2})(\\d{2})$", "\\1-\\2-\\3"))) #Get the julian date (easier for data graphing imo)
+  jd_mix<-function(x){
+    yday(as.Date(str_replace(str_sub(str_sub(x, -15), 1, str_length(str_sub(x, -15))-7),
+                             "(\\d{4})(\\d{2})(\\d{2})$", "\\1-\\2-\\3"))) #Get the julian date (easier for data graphing imo)
+  }
+
+  dfraw$Julian_Date <- jd_mix(dfraw$Filename)
 
   dfraw$Time <- str_sub(dfraw$Filename, -6) #Get the time substring
 
@@ -54,13 +67,13 @@ wt_aru_scanner <- function(path0, pattern) {
   dfraw$Time_index <- ave(paste(dfraw$Station, dfraw$Julian_Date, dfraw$Year, sep=""), paste(dfraw$Station, dfraw$Julian_Date, dfraw$Year, sep=""), FUN=seq_along)
 
   #Read all the audio files and return length in seconds; need to add sample rate here too eventually
-  foreach (i=1:nrow(dfraw$Filepath)) %dopar% {
-    dfraw$sound_length<-readWave(i,from=1,to=Inf,units="seconds")
-    setTxtProgressBar(pb,i)
+  for (i in dfraw$Filepath) {
+    tryCatch(t<-readWave(i, from=0, to=Inf, units="seconds"),error=function(e) {
+      msg<-conditionMessage(e)
+      print(paste0(msg, i, sep=' *** '))})
   }
 
   #Wrap it up / shut down progress bar and parallel clustering
-  return(dfraw)
   close(pb)
   stopCluster(cl)
 
