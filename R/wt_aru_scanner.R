@@ -11,11 +11,17 @@
 
 wt_aru_scanner <- function(path0, pattern) {
 
+  print('Scanning audio files... please wait...')
+  print('')
+
   dfraw <- as.data.frame(file.info(list.files(path = path0,
                                     pattern = pattern,
                                     recursive = TRUE,
                                     full.names = TRUE,
                                     include.dirs = FALSE))) #Create a dataframe that is a list of files defined by path; pattern is regex usually "\\.wac$|\\.wav$|\\.mp3$|\\.flac$"
+
+  print('Audio files scanned... extracting metadata...')
+  print('')
 
   pb1<- txtProgressBar(min = 0, max = nrow(dfraw), style=3, title = "Reading audio file lengths...")
 
@@ -36,13 +42,15 @@ wt_aru_scanner <- function(path0, pattern) {
                         (str_split_fixed(dfraw$Filename, "_", n=3)),
                         (str_split_fixed(dfraw$Filename, "_", n=2)))
 
-  dfraw$JD<-yday(as.Date(str_replace(str_sub(str_sub(dfraw$Filename, -15), 1, str_length(str_sub(dfraw$Filename, -15))-7),
-                             "(\\d{4})(\\d{2})(\\d{2})$", "\\1-\\2-\\3"))) #Get the julian date (easier for data graphing imo)
+  dfraw$recording_date <- as.Date(str_replace(str_sub(str_sub(dfraw$Filename, -15), 1, str_length(str_sub(dfraw$Filename, -15))-7),
+                             "(\\d{4})(\\d{2})(\\d{2})$", "\\1-\\2-\\3")) #Get the date from the filename string
+
+  dfraw$Julian_Date <- yday(dfraw$recording_date) #Get the julian date (easier for data graphing imo)
 
   dfraw$Time <- str_sub(dfraw$Filename, -6) #Get the time substring
 
-  #Get year of the data
-  dfraw$Year<-as.numeric(vapply(strsplit(as.character(dfraw$Filepath), "/"), `[`, 6, FUN.VALUE=character(1)))
+  #Get year of the data only works for standard filenames
+  dfraw$Year<-as.numeric(str_sub(gsub('^(.*?)_','',dfraw$Filename),1,4))
 
   dfraw[order(dfraw$Filename), ] #Reorder the dataframe to accept the time index properly
 
@@ -51,6 +59,7 @@ wt_aru_scanner <- function(path0, pattern) {
 
   #Read all the audio files and return length in seconds; need to add sample rate here too eventually
   dfraw$length <-0
+  dfraw$samplerate <-0
 
   #Read all the audio files and return length in seconds; need to add sample rate here too eventually
   for (i in 1:nrow(dfraw)) {
@@ -60,6 +69,7 @@ wt_aru_scanner <- function(path0, pattern) {
                  msg<-conditionMessage(e2)
                  print(paste0(msg, i, sep=' *** '))})
       dfraw$length[i]<-round(x$samples / x$sample.rate)
+      dfraw$samplerate[i]<-x$sample.rate
       setTxtProgressBar(pb1,i)}
   }
 
