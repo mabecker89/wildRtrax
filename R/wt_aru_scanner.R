@@ -9,16 +9,6 @@
 #'
 #' @examples
 
-library(stringr)
-library(base)
-library(lubridate)
-library(tuneR)
-library(R.utils)
-library(doParallel)
-library(foreach)
-library(tidyverse)
-library(data.table)
-
 wt_aru_scanner <- function(path0, pattern) {
 
   dfraw <- as.data.frame(file.info(list.files(path = path0,
