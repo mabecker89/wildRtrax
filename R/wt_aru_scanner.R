@@ -3,13 +3,16 @@
 #' @param path0
 #' @param pattern
 #'
-#' @import stringr base stats lubridate tuneR R.utils tidyverse data.table
+#' @import stringr base stats lubridate tuneR R.utils tidyverse data.table tools
 #' @return
 #' @export
 #'
 #' @examples
 
-wt_aru_scanner <- function(path0, pattern) {
+
+library(tools)
+
+wt_aru_scanner <- function(path0, pattern, dfraw) {
 
   print('Scanning audio files... please wait...')
   print('')
@@ -50,7 +53,7 @@ wt_aru_scanner <- function(path0, pattern) {
   dfraw$Time <- str_sub(dfraw$Filename, -6) #Get the time substring
 
   #Get year of the data only works for standard filenames
-  dfraw$Year<-as.numeric(str_sub(gsub('^(.*?)_','',dfraw$Filename),1,4))
+  dfraw$Year<-str_sub(str_extract(dfraw$Filename,'([^_]+)(?:_[^_]+)$'),1,4)
 
   dfraw[order(dfraw$Filename), ] #Reorder the dataframe to accept the time index properly
 
@@ -60,6 +63,8 @@ wt_aru_scanner <- function(path0, pattern) {
   #Read all the audio files and return length in seconds; need to add sample rate here too eventually
   dfraw$length <-0
   dfraw$samplerate <-0
+
+  dfraw$type <- file_ext(dfraw$Filepath) #Get filetype
 
   #Read all the audio files and return length in seconds; need to add sample rate here too eventually
   for (i in 1:nrow(dfraw)) {
@@ -74,7 +79,6 @@ wt_aru_scanner <- function(path0, pattern) {
   }
 
   #Wrap it up / shut down progress bar
-  print(dfraw)
-  return(dfraw)
+  write.csv(dfraw,'/users/alexandremacphail/desktop/test_wt_aru_scanner.csv')
   close(pb)
 }
