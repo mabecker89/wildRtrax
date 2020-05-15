@@ -4,15 +4,24 @@
 #' @param pattern
 #'
 #' @import stringr base stats lubridate tuneR R.utils tidyverse data.table tools
-#' @return
+#' @return dfraw
 #' @export
 #'
 #' @examples
+#'
+#'
 
-
+library(stringr)
+library(base)
+library(stats)
+library(lubridate)
+library(tuneR)
+library(R.utils)
+library(tidyverse)
+library(data.table)
 library(tools)
 
-wt_aru_scanner <- function(path0, pattern, dfraw) {
+wt_aru_scanner <- function(path0, pattern) {
 
   print('Scanning audio files... please wait...')
   print('')
@@ -41,7 +50,7 @@ wt_aru_scanner <- function(path0, pattern, dfraw) {
 
   dfraw$Filename <- basename(gsub("\\..*", "", dfraw$Filepath)) #Get filename from the filepath
 
-  dfraw$Station <- ifelse((str_detect(dfraw$Filename, "_0+1_")), #Create the station key; concatenate, dataset, site, station.
+  dfraw$Station_key <- ifelse((str_detect(dfraw$Filename, "_0+1_")), #Create the station key; concatenate, dataset, site, station.
                         (str_split_fixed(dfraw$Filename, "_", n=3)),
                         (str_split_fixed(dfraw$Filename, "_", n=2)))
 
@@ -50,7 +59,7 @@ wt_aru_scanner <- function(path0, pattern, dfraw) {
 
   dfraw$Julian_Date <- yday(dfraw$recording_date) #Get the julian date (easier for data graphing imo)
 
-  dfraw$Time <- str_sub(dfraw$Filename, -6) #Get the time substring
+  dfraw$Time<-format(strptime(str_sub(dfraw$Filename,-6),format="%H%M%S"),"%H:%M:%S") #Get the time substring
 
   #Get year of the data only works for standard filenames
   dfraw$Year<-str_sub(str_extract(dfraw$Filename,'([^_]+)(?:_[^_]+)$'),1,4)
@@ -58,11 +67,12 @@ wt_aru_scanner <- function(path0, pattern, dfraw) {
   dfraw[order(dfraw$Filename), ] #Reorder the dataframe to accept the time index properly
 
   #Creates an index of all the unique times of the dataframe for each date and time value. So day 1 midnight = 1, day 1 dawn = 4. That way you can pick from the 4th, 5th, recording of the day if you want which would corrrspond to tracking dawn, dusk, etc.
-  dfraw$Time_index <- ave(paste(dfraw$Station, dfraw$Julian_Date, dfraw$Year, sep=""), paste(dfraw$Station, dfraw$Julian_Date, dfraw$Year, sep=""), FUN=seq_along)
+  dfraw$Time_index <- ave(paste(dfraw$Station_key, dfraw$Julian_Date, dfraw$Year, sep=""), paste(dfraw$Station_key, dfraw$Julian_Date, dfraw$Year, sep=""), FUN=seq_along)
 
   #Read all the audio files and return length in seconds; need to add sample rate here too eventually
-  dfraw$length <-0
-  dfraw$samplerate <-0
+  dfraw$length <- 0
+  dfraw$samplerate <- 0
+  dfraw$channels <- 0
 
   dfraw$type <- file_ext(dfraw$Filepath) #Get filetype
 
@@ -75,10 +85,22 @@ wt_aru_scanner <- function(path0, pattern, dfraw) {
                  print(paste0(msg, i, sep=' *** '))})
       dfraw$length[i]<-round(x$samples / x$sample.rate)
       dfraw$samplerate[i]<-x$sample.rate
+      dfraw$channels[i]<-x$channels
       setTxtProgressBar(pb1,i)}
   }
 
   #Wrap it up / shut down progress bar
-  write.csv(dfraw,'/users/alexandremacphail/desktop/test_wt_aru_scanner.csv')
-  close(pb)
+  write.csv(dfraw,'./test_wt_aru_scanner_upsi.csv')
+  close(pb1)
+  return(dfraw)
 }
+
+wt_aru_scanner('/volumes/budata/abmi/2019/01/abmi-0409','\\.wav$')
+
+t<-read.csv('/users/alexandremacphail/wildRtrax/test_wt_aru_scanner_upsi.csv')[,-1]
+ggplot(t,aes(Julian_Date)) + geom_bar()
+
+
+
+
+
