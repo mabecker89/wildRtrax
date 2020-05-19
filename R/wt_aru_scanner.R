@@ -7,19 +7,9 @@
 #' @return dfraw
 #' @export
 #'
-#' @examples
+#' @examples z<-wt_aru_scanner('/volumes/budata/abmi/2019/01','\\.wav$|\\.wac$')
 #'
 #'
-
-library(stringr)
-library(base)
-library(stats)
-library(lubridate)
-library(tuneR)
-library(R.utils)
-library(tidyverse)
-library(data.table)
-library(tools)
 
 wt_aru_scanner <- function(path0, pattern) {
 
@@ -90,17 +80,8 @@ wt_aru_scanner <- function(path0, pattern) {
   }
 
   #Wrap it up / shut down progress bar
-  write.csv(dfraw,'./test_wt_aru_scanner_upsi.csv')
+  write.csv(dfraw,'./test_wt_aru_scanner.csv')
   close(pb1)
   return(dfraw)
 }
-
-wt_aru_scanner('/volumes/budata/abmi/2019/01/abmi-0409','\\.wav$')
-
-t<-read.csv('/users/alexandremacphail/wildRtrax/test_wt_aru_scanner_upsi.csv')[,-1]
-ggplot(t,aes(Julian_Date)) + geom_bar()
-
-
-
-
 

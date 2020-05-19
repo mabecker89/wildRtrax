@@ -6,18 +6,16 @@
 #' manual overrides and let you select through the remaining fields below
 #' @param jd_start #date to start with
 #' @param jd_end #date to end with
-#' @param time_index
-#' @param sample_size
+#' @param time_index #Range of time indices that can be selected e.g. c(1:4)
+#' @param sample_size #Number of replicates using the date and time choices per spatial location
 #'
 #' @import tidyverse stringr soundecology
-#' @return df_out
+#' @return df_out plot1
 #' @export
 #'
-#' @examples
+#' @examples x<-wt_aru_assign(z, blocks="manual", jd_start=140, jd_end=190, time_index=c(1:2), sample_size=1)
 
-library(soundecology)
-
-wt_aru_assign <- function(df, blocks = c('ABMI_stratified', 'BU_days', 'manual'), jd_start, jd_end, time_index, sample_size){
+wt_aru_assign <- function(df, blocks = c('ABMI_stratified', 'BU_days', 'manual'), jd_start, jd_end, time_index, sample_size) {
 
   #Start by creating a "block tower" basically assign each file into each stratified block
   if (blocks == 'ABMI_stratified') {
@@ -42,57 +40,39 @@ wt_aru_assign <- function(df, blocks = c('ABMI_stratified', 'BU_days', 'manual')
         sample_n(1)
 
       files <- unlist(df_out$Filepath)
-      print(paste0(round((nrow(df_out)/nrow(t)),3)*100, '% of the dataset is being subsampled with ABMI stratified design'))
+      print(paste0(round((nrow(df_out)/nrow(t)),3)*100, '% of the dataset is being subsampled with the ABMI stratified design'))
       df_out$Filepath<-as.character(df_out$Filepath)
-      
-     #Run preliminary check of the audio data
+
+     #Run preliminary check of the audio data for anthropophonic data
       for (i in 1:nrow(df_out)) {
         if(df_out$size[i]>0) {
-          x<-readWave(df_out$Filepath[i],from=0,to=Inf, units="seconds")
-          results<-acoustic_complexity(x,min_freq=0,max_freq=8000)
-          summary(results)
-      }}
-      # Section for acoustic indices for weather is broken
-      # # Set the directory containing the files
-      # setwd('/users/alexandremacphail/AP2')
-      #
-      # # The directory to store the results
-      # base_output_directory <- "/users/alexandremacphail/desktop/ap2/wildRtrax/results"
-      #
-      # # Get a list of audio files inside the directory
-      # # (Get-ChildItem is just like ls, or dir)
-      # files <- unlist(df_out$Filepath)
-      #
-      # # iterate through each file
-      # for(file in files) {
-      #   message("Processing ", file)
-      #
-      #   # get just the name of the file
-      #   file_name <- basename(file)
-      #
-      #   # make a folder for results
-      #   output_directory <- normalizePath(file.path(base_output_directory, file_name))
-      #   dir.create(output_directory, recursive = TRUE)
-      #
-      #   # prepare command
-      #   command <- sprintf('audio2csv "%s" "Towsey.Acoustic.yml" "%s" ', '/users/alexandremacphail/desktop/RS-0031-NW_20190627_020000-old1.wav', '/users/alexandremacphail/desktop/ap2/wildRtrax/results')
-      #
-      #   # finally, execute the command
-      #   system2('/users/alexandremacphail/AP2/AnalysisPrograms.exe', command)
-      #}
+          x<-readWave(df_out$Filepath[i],from=0,to=180, units="seconds")
+          results<-ndsi(x,fft_w=2048,anthro_min=0,anthro_max=2000,bio_min=2000,bio_max=8000)
+          if(df_out$channels[i]=="mono"){
+
+          } else {
+          df_out$anthrophony[i]<-(results$anthrophony_left+results$anthrophony_right)/2
+          df_out$biophony[i]<-(results$biophony_left+results$biophony_right)/2}
+        }}
 
   }
-    else if (blocks=='BU_days') {
+    else if (blocks=='BU_days') {#Do the BU subsampling
       df_out <- df %>%
         group_by(Station_key) %>%
         filter(Julian_Date %in% c(140:190)) %>%
         filter(Time_index==3) %>%
         sample_n(4, replace = FALSE)
+      print(paste0(round((nrow(df_out)/nrow(t)),3)*100, '% of the dataset is being subsampled with the BU days design'))
 
-      print(paste0(round((nrow(df_out)/nrow(t)),3)*100, '% of the dataset is being subsampled with BU days design'))
-
+      for (i in 1:nrow(df_out)) {
+        if(df_out$size[i]>0) {
+          x<-readWave(df_out$Filepath[i],from=0,to=180, units="seconds")
+          results<-ndsi(x,fft_w=2048,anthro_min=0,anthro_max=2000,bio_min=2000,bio_max=8000)
+          df_out$anthrophony[i]<-(results$anthrophony_left+results$anthrophony_right)/2
+          df_out$biophony[i]<-(results$biophony_left+results$biophony_right)/2
+        }}
     }
-    else {
+    else {#Manually subsampling
       df_out <- df %>%
         group_by(Station_key) %>%
         filter(Julian_Date %in% c(jd_start:jd_end)) %>%
@@ -102,9 +82,34 @@ wt_aru_assign <- function(df, blocks = c('ABMI_stratified', 'BU_days', 'manual')
         sample_n(sample_size,replace = FALSE)
 
       print(paste0(round((nrow(df_out)/nrow(t)),3)*100, '% of the dataset is being subsampled with your manual design'))
+
+      for (i in 1:nrow(df_out)) {
+        if(df_out$size[i]>0) {
+          x<-readWave(df_out$Filepath[i],from=0,to=180, units="seconds")
+          results<-ndsi(x,fft_w=2048,anthro_min=0,anthro_max=2000,bio_min=2000,bio_max=8000)
+          df_out$anthrophony[i]<-(results$anthrophony_left+results$anthrophony_right)/2
+          df_out$biophony[i]<-(results$biophony_left+results$biophony_right)/2
+        }}
     }
-    return(df_out)
+  plot1<-ggplot(z,aes(x=Julian_Date)) +
+    geom_point(aes(y=biophony),colour="forest green") +
+    geom_smooth(aes(y=biophony),colour="forest green") +
+    geom_hline(yintercept = 0.3, size=1, color="forest green", linetype="dashed") +
+    geom_text(aes(x=90,y=0.3),label="Biophonic threshold", vjust=-1, hjust=-1) +
+    geom_point(aes(y=anthrophony),colour="red") +
+    geom_smooth(aes(y=anthrophony),colour="red") +
+    geom_hline(yintercept = 0.75, size=1, color="red", linetype="dashed") +
+    geom_text(aes(x=90,y=0.75),label="Anthropophonic threshold", vjust=-1, hjust=-1) +
+    blanktheme +
+    ylab("Acoustic index value")
+
+    return(list(df_out,plot1))
 }
 
-wt_aru_assign(t %>% filter(!type=='wac'),blocks="ABMI_stratified")
+
+
+
+
+
+
 
