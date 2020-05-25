@@ -106,9 +106,77 @@ wt_aru_assign <- function(df, blocks = c('ABMI_stratified', 'BU_days', 'manual')
     return(list(df_out,plot1))
 }
 
+# Alternative structure for Assign:
 
+library(furrr)
+library(future)
 
+plan(multiprocess)
 
+wt_aru_assign <- function(df, blocks = c('ABMI_stratified', 'BU_days', 'manual'), jd_start, jd_end, time_index, sample_size) {
+
+  # For ABMI
+  dfraw1 <- df %>%
+    left_join(abmi, by = c("julian", "time_index")) %>%
+    filter(!is.na(blocks)) %>%
+    group_by(station_key, blocks) %>%
+    sample_n(1)
+
+  # This doesn't seem to be faster than the original for loop. Not sure why. Oh well, probably keep the for loop then?
+  dfraw2 <- dfraw1 %>%
+    mutate(data = future_map(.x = filepath, .f = ~ readWave(., from = 0, to = 180, units = "seconds")),
+           results = future_map(.x = data, .f = ~ ndsi(., fft_w = 2048, anthro_min = 0, anthro_max = 2000,
+                                                       bio_min = 2000, bio_max = 8000))) %>%
+    select(-data)
+
+  # Original
+  dfraw1$anthrophony <- 0
+  dfraw1$biophony <- 0
+  for (i in 1:nrow(dfraw1)) {
+    if(dfraw1$size_Mb[i]>0) {
+      x<-readWave(df_out$filepath[i],from=0,to=180, units="seconds")
+      results<-ndsi(x,fft_w=2048,anthro_min=0,anthro_max=2000,bio_min=2000,bio_max=8000)
+      if(dfraw1$channels[i]=="mono"){
+
+      } else {
+        dfraw1$anthrophony[i]<-(results$anthrophony_left+results$anthrophony_right)/2
+        dfraw1$biophony[i]<-(results$biophony_left+results$biophony_right)/2}
+    }}
+
+}
+
+# Microbenchmarking
+
+new <- function(df) {
+  df %>%
+    mutate(data = future_map(.x = filepath, .f = ~ readWave(., from = 0, to = 180, units = "seconds")),
+           results = future_map(.x = data, .f = ~ ndsi(., fft_w = 2048, anthro_min = 0, anthro_max = 2000,
+                                                       bio_min = 2000, bio_max = 8000))) %>%
+    select(-data) }
+
+orig <- function(df) {
+  test <- df
+  test$anthrophony <- 0
+  test$biophony <- 0
+  for (i in 1:nrow(test)) {
+    if(test$size_Mb[i]>0) {
+      x<-readWave(test$filepath[i],from=0,to=180, units="seconds")
+      results<-ndsi(x,fft_w=2048,anthro_min=0,anthro_max=2000,bio_min=2000,bio_max=8000)
+      if(test$n_channels[i]=="mono"){
+
+      } else {
+        test$anthrophony[i]<-(results$anthrophony_left+results$anthrophony_right)/2
+        test$biophony[i]<-(results$biophony_left+results$biophony_right)/2}
+    }}
+}
+
+library(microbenchmark)
+
+mbm <- microbenchmark(
+  original = orig(df = dfraw1),
+  new = new(df = dfraw1),
+  times = 5
+)
 
 
 

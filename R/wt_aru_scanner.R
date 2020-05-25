@@ -85,3 +85,64 @@ wt_aru_scanner <- function(path0, pattern) {
   return(dfraw)
 }
 
+# Alternative structure for scanner
+
+# A few new packages required:
+library(furrr)
+library(fs)
+library(pipeR)
+library(tidyr)
+library(tibble)
+
+# Example directory for testing
+root <- "B:/ABMI/2019/01/ABMI-0409/ABMI-0409-NE"
+
+# For parallel processing:
+plan(multiprocess)
+
+wt_aru_scanner <- function(path, file_type) {
+
+  # Convert to regex ... have to think this through more.
+  if(file_type == "wav") {
+    ext <- "\\.wav$"
+  } else {
+    ext <- "\\.wav$|\\.wac$"
+  }
+
+  dfraw <-
+    # First list then retrieve file size
+    dir_ls(path = path, recurse = TRUE, regexp = ext) %>>%
+    "Scanning audio files ..." %>>%
+    future_map_dbl(., .f = ~ file_size(.), .progress = TRUE) %>%
+    enframe() %>%
+    # Convert size to megabytes
+    mutate(size_Mb = round(value / 10e6, digits = 2)) %>%
+    select(filepath = name, size_Mb) %>%
+    mutate(filename = str_replace(basename(filepath), "\\..*", "")) %>%
+    # Parse station key and recording date time
+    separate(filename, into = c("station_key", "recording_date_time"),
+             sep = "_", extra = "merge", remove = FALSE) %>%
+    mutate(recording_date_time = ymd_hms(recording_date_time),
+           julian = yday(recording_date_time),
+           year = year(recording_date_time)) %>%
+    arrange(station_key, recording_date_time) %>%
+    # Create time index
+    group_by(station_key, year, julian) %>%
+    mutate(time_index = row_number()) %>%
+    ungroup() %>>%
+    # Obtain metadata from audio files
+    "Audio files scanned. Extracting metadata ..." %>>%
+    mutate(data = future_map(.x = filepath,
+                             .f = ~ readWave(., from = 0, to = Inf, units = "seconds", header = TRUE),
+                             .progress = TRUE),
+           length_seconds = future_map(.x = data, .f = ~ round(.x$samples / .x$sample.rate)),
+           sample_rate = future_map(.x = data, .f = ~ pluck(.x$sample.rate)),
+           n_channels = future_map(.x = data, .f = ~ pluck(.x$channels))) %>%
+    select(filepath, filename, size_Mb, station_key, recording_date_time, year, julian, time_index,
+           length_seconds:n_channels)
+
+  return(dfraw)
+
+}
+
+
