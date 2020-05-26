@@ -48,8 +48,9 @@ wt_aru_assign <- function(df, blocks = c('ABMI_stratified', 'BU_days', 'manual')
         if(df_out$size[i]>0) {
           x<-readWave(df_out$Filepath[i],from=0,to=180, units="seconds")
           results<-ndsi(x,fft_w=2048,anthro_min=0,anthro_max=2000,bio_min=2000,bio_max=8000)
-          if(df_out$channels[i]=="mono"){
-
+          if(df_out$channels[i]==1){
+            df_out$anthrophony[i]<-results$anthrophony_left
+            df_out$biophony[i]<-results$biophony_left
           } else {
           df_out$anthrophony[i]<-(results$anthrophony_left+results$anthrophony_right)/2
           df_out$biophony[i]<-(results$biophony_left+results$biophony_right)/2}
@@ -68,8 +69,12 @@ wt_aru_assign <- function(df, blocks = c('ABMI_stratified', 'BU_days', 'manual')
         if(df_out$size[i]>0) {
           x<-readWave(df_out$Filepath[i],from=0,to=180, units="seconds")
           results<-ndsi(x,fft_w=2048,anthro_min=0,anthro_max=2000,bio_min=2000,bio_max=8000)
-          df_out$anthrophony[i]<-(results$anthrophony_left+results$anthrophony_right)/2
-          df_out$biophony[i]<-(results$biophony_left+results$biophony_right)/2
+          if(df_out$channels[i]==1){
+            df_out$anthrophony[i]<-results$anthrophony_left
+            df_out$biophony[i]<-results$biophony_left
+          } else {
+            df_out$anthrophony[i]<-(results$anthrophony_left+results$anthrophony_right)/2
+            df_out$biophony[i]<-(results$biophony_left+results$biophony_right)/2}
         }}
     }
     else {#Manually subsampling
@@ -87,29 +92,28 @@ wt_aru_assign <- function(df, blocks = c('ABMI_stratified', 'BU_days', 'manual')
         if(df_out$size[i]>0) {
           x<-readWave(df_out$Filepath[i],from=0,to=180, units="seconds")
           results<-ndsi(x,fft_w=2048,anthro_min=0,anthro_max=2000,bio_min=2000,bio_max=8000)
-          df_out$anthrophony[i]<-(results$anthrophony_left+results$anthrophony_right)/2
-          df_out$biophony[i]<-(results$biophony_left+results$biophony_right)/2
+          if(df_out$channels[i]==1){
+            df_out$anthrophony[i]<-results$anthrophony_left
+            df_out$biophony[i]<-results$biophony_left
+          } else {
+            df_out$anthrophony[i]<-(results$anthrophony_left+results$anthrophony_right)/2
+            df_out$biophony[i]<-(results$biophony_left+results$biophony_right)/2}
         }}
     }
-  plot1<-ggplot(z,aes(x=Julian_Date)) +
+  plot1<-ggplot(as.data.frame(x[[1]]),aes(x=Julian_Date)) +
     geom_point(aes(y=biophony),colour="forest green") +
     geom_smooth(aes(y=biophony),colour="forest green") +
     geom_hline(yintercept = 0.3, size=1, color="forest green", linetype="dashed") +
-    geom_text(aes(x=90,y=0.3),label="Biophonic threshold", vjust=-1, hjust=-1) +
+    geom_text(aes(x=min(Julian_Date),y=0.3),label="Biophonic threshold", vjust=-1, hjust=-1) +
     geom_point(aes(y=anthrophony),colour="red") +
     geom_smooth(aes(y=anthrophony),colour="red") +
     geom_hline(yintercept = 0.75, size=1, color="red", linetype="dashed") +
-    geom_text(aes(x=90,y=0.75),label="Anthropophonic threshold", vjust=-1, hjust=-1) +
+    geom_text(aes(x=min(Julian_Date),y=0.75),label="Anthropophonic threshold", vjust=-1, hjust=-1) +
     blanktheme +
     ylab("Acoustic index value")
 
     return(list(df_out,plot1))
 }
-
-
-
-
-
 
 
 

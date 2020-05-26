@@ -20,3 +20,4 @@ wt_conn <- function(username, password) {
   return(conn)
 
 }
+
