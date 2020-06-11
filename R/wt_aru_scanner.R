@@ -28,22 +28,12 @@ library(seewave)
 library(tuneR)
 
 # For parallel processing:
-plan(multiprocess)
+plan(multisession)
 
 wt_aru_scanner <- function(path, file_type) {
-  # Convert to regex ... have to think this through more.
-  if(file_type == "wav") {
-    ext <- "wav"
-  } else if (file_type == "wac") {
-    ext <- "wac"
-  } else if (file_type == "flac") {
-    ext <- "flac"
-  } else (file_type == "mp3") {
-    ext <- "mp3"
-  }
   dfraw <-
     # First list then retrieve file size
-    dir_ls(path = path, recurse = TRUE, regexp = ext) %>>%
+    dir_ls(path = path, recurse = TRUE, regexp = file_type) %>>%
     "Scanning audio files ..." %>>%
     future_map_dbl(., .f = ~ file_size(.), .progress = TRUE) %>%
     enframe() %>%
@@ -52,11 +42,12 @@ wt_aru_scanner <- function(path, file_type) {
     select(filepath = name, size_Mb) %>%
     mutate(filename = str_replace(basename(filepath), "\\..*", "")) %>%
     # Parse station key and recording date time
-    separate(filename, into = c("station_key", "recording_date_time"), #Need a conditional statement here to handle different conditions of file names e.g. SM3s have _0+1_
+    separate(filename, into = c("station_key", "recording_date_time"),
              sep = "_", extra = "merge", remove = FALSE) %>%
     mutate(recording_date_time = ymd_hms(recording_date_time),
            julian = yday(recording_date_time),
            year = year(recording_date_time)) %>%
+    mutate(ftype = str_extract(filepath,'.{3}$')) %>%
     arrange(station_key, recording_date_time) %>%
     # Create time index
     group_by(station_key, year, julian) %>%
@@ -64,6 +55,7 @@ wt_aru_scanner <- function(path, file_type) {
     ungroup() %>>%
     # Obtain metadata from audio files
     "Audio files scanned. Extracting metadata ..." %>>%
+  #WAV METADATA
     mutate(data = future_map(.x = filepath,
                              .f = ~ readWave(., from = 0, to = Inf, units = "seconds", header = TRUE),
                              .progress = TRUE), ### See file_type options below for functions that can read wac and flac
@@ -73,8 +65,7 @@ wt_aru_scanner <- function(path, file_type) {
     select(filepath, filename, size_Mb, station_key, recording_date_time, year, julian, time_index,
            length_seconds:n_channels) %>%
     unnest(c('length_seconds','sample_rate','n_channels')) #Stack lists
-
-  return(dfraw)
+  return(as.data.frame(dfraw))
 }
 
 #For reading different filetypes
