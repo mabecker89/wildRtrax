@@ -26,6 +26,7 @@ library(bioacoustics)
 library(soundecology)
 library(seewave)
 library(tuneR)
+library(tictoc)
 
 # For parallel processing:
 plan(multisession)
