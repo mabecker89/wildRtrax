@@ -23,7 +23,7 @@ library(soundecology)
 wt_aru_assign <- function(df, blocks = c('ABMI_stratified', 'BU_days','manual'), jd_start, jd_end, time_index, sample_size) {
   #Start by creating a "block tower" basically assign each file into each stratified block. If it doesn't fit the block, value will be NA and subsequently filtered out
   if (blocks == 'ABMI_stratified') {
-  Create the lookup table
+  #Create the lookup table
   abmi <- data.frame(julian = 90:210) %>%
     crossing(time_index = 1:4) %>%
     mutate(blocks = case_when(
@@ -48,13 +48,23 @@ wt_aru_assign <- function(df, blocks = c('ABMI_stratified', 'BU_days','manual'),
     group_by(station_key,blocks) %>%
     na.omit() %>%
     sample_n(1)
+  df_out <- df
   files <- unlist(df_out$filepath)
   print(paste0(round((nrow(df_out)/nrow(df)),3)*100, '% of the dataset is being subsampled with the ABMI stratified design'))
   df_out$filepath<-as.character(df_out$filepath)
   #BIOPHONIC AND ANTHROPOPHONIC FILTERS
   for (i in 1:nrow(df_out)) {
         if(df_out$size_Mb[i]>0) {
-          sound<-readWave(df_out$filepath[i],from=0,to=df_out$length_seconds[i], units="seconds")
+          sound<-tryCatch(
+            if (str_extract(df_out$filepath[i],'.{3}$')=='wac') {
+              read_wac(df_out$filepath[i])
+              } else if (str_extract(df_out$filepath[i], '.{3}$')=='wav') {
+                readWave(df_out$filepath[i], from=0, to=df_out$length_seconds[i], units="seconds", header = T)
+              } else {print('Could not read or source not valid')},
+              error=function(e) {
+                msg<-conditionMessage(e)
+                print(paste0(msg, df_out$filepath[i], sep=' '))}
+            )
           results<-ndsi(sound,fft_w=2048,anthro_min=0,anthro_max=2000,bio_min=2000,bio_max=8000)
           if(df_out$n_channels[i]==1){
             df_out$anthrophony[i]<-results$anthrophony_left
@@ -67,7 +77,7 @@ wt_aru_assign <- function(df, blocks = c('ABMI_stratified', 'BU_days','manual'),
   for (i in 1:nrow(df_out)) {
         if (!is.na(df_out$filename[i]) & df_out$size_Mb[i]>0) {
           basename<-df_out$filename[i]
-          base_output_directory <- '/users/alexandremacphail/desktop/testwav'
+          base_output_directory <- '/users/alexandremacphail/desktop/testwav-1'
           message("******Processing LDFCs for ", df_out$filename[i], ' *******')
           # prepare command
           command <- sprintf('audio2csv "%s" "Towsey.Acoustic.yml" "%s" ', df_out$filepath[i], base_output_directory)
@@ -239,6 +249,5 @@ plot1<-ggplot(df_out,aes(x=as.Date(recording_date_time, "%b-%d")), alpha=0.4) +
   ylab("Acoustic index value") +
   xlab("Date") +
   ggtitle(paste0("Acoustic index values for subset of: ",sapply(list(unique(df_out$station_key)),paste,collapse=", ")))
-plot2<-plot1 + ylim(-0.25, 1.25)
-return(list(df_out,plot1,plot2))
+return(list(df_out,plot1))
 }

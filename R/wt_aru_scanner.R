@@ -58,23 +58,21 @@ wt_aru_scanner <- function(path, file_type) {
     "Audio files scanned. Extracting metadata ..." %>>%
   #WAV METADATA
     mutate(data = future_map(.x = filepath,
-                             .f = ~ readWave(., from = 0, to = Inf, units = "seconds", header = TRUE),
-                             .progress = TRUE), ### See file_type options below for functions that can read wac and flac
-           length_seconds = future_map(.x = data, .f = ~ round(.x$samples / .x$sample.rate)),
-           sample_rate = future_map(.x = data, .f = ~ pluck(.x$sample.rate)),
-           n_channels = future_map(.x = data, .f = ~ pluck(.x$channels))) %>%
+                             .f = if (ftype == 'wav') { ~ readWave(.x, from = 0, to = Inf, units = "seconds", header = TRUE) }
+                             else if (ftype == 'wac') { ~ read_wac(.x) }
+                             else if (ftype == 'mp3') { ~ readMP3(.x) }
+                             else if (ftype == 'flac') { ~ wac2flac(.x, reverse=T) }
+                             else {print('File type not supported for ', .x)},
+                             .progress = TRUE),
+           length_seconds = future_map(.x = data, .f = ~ round(length(.x@left) / .x@samp.rate,2)),
+           sample_rate = future_map(.x = data, .f = ~ pluck(.x@samp.rate)),
+           n_channels = future_map(.x = data, .f = ~ pluck(.x@stereo))) %>%
     select(filepath, filename, size_Mb, station_key, recording_date_time, year, julian, time_index,
            length_seconds:n_channels) %>%
     unnest(c('length_seconds','sample_rate','n_channels')) #Stack lists
+  dfraw$n_channels <- ifelse(dfraw$n_channels == TRUE,2,1)
   return(as.data.frame(dfraw))
 }
-
-#For reading different filetypes
-read_wac(filepath) #in bioacoustics
-wac2flac(filepath,reverse=T) #in seewave
-#MP3
-r<-readMP3(filepath)
-writeWave(r,extensible=T)
 
 
 
