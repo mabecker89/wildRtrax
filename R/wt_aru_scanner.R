@@ -58,12 +58,12 @@ wt_aru_scanner <- function(path, file_type) {
     "Audio files scanned. Extracting metadata ..." %>>%
   #WAV METADATA
     mutate(data = future_map(.x = filepath,
-                             .f = if (ftype == 'wav') { ~ readWave(.x, from = 0, to = Inf, units = "seconds", header = TRUE) }
-                             else if (ftype == 'wac') { ~ read_wac(.x) }
-                             else if (ftype == 'mp3') { ~ readMP3(.x) }
-                             else if (ftype == 'flac') { ~ wac2flac(.x, reverse=T) }
-                             else {print('File type not supported for ', .x)},
-                             .progress = TRUE),
+                             .f =  ~ readWave(.x, from = 0, to = Inf, units = "seconds", header = TRUE) #} if (ftype == 'wav') {
+                             # else if (ftype == 'wac') { ~ read_wac(.x) }
+                             # else if (ftype == 'mp3') { ~ readMP3(.x) }
+                             # else if (ftype == 'flac') { ~ wac2flac(.x, reverse=T) }
+                             # else {print('File type not supported for ', .x)},
+                             ,.progress = TRUE),
            length_seconds = future_map(.x = data, .f = ~ round(length(.x@left) / .x@samp.rate,2)),
            sample_rate = future_map(.x = data, .f = ~ pluck(.x@samp.rate)),
            n_channels = future_map(.x = data, .f = ~ pluck(.x@stereo))) %>%
