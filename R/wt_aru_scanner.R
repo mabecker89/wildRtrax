@@ -1,13 +1,13 @@
-#' Scans directories of audio data and returns the filepath, filename, file size, date, time, station key, sample rate, length and number of channels to be used as filters for wt_aru_assign or other uses
+#' Scans directories of audio data and returns the filepath, filename, file size, date, time, station key, sample rate, length /(s)/ and number of channels to be used as filters for wt_aru_assign or other uses
 #'
 #' @param path
 #' @param file_type
 #'
-#' @import furr fs pipeR tibble stringr lubridate tidyverese bioacoustics soundecology seewave tuneR
-#' @return dfraw
+#' @import furr fs pipeR tibble stringr lubridate tidyverese bioacoustics soundecology seewave tuneR tictoc tools
+#' @return dfraw, summary of scanned volume and time
 #' @export
 #'
-#' @examples z<-wt_aru_scanner('/volumes/budata/abmi/2019/01','wav')
+#' @examples z<-wt_aru_scanner('/volumes/budata/abmi/2019/01','\\.wac$|\\.wav$|\\.mp3$')
 #'
 #'
 ----------------------------
@@ -33,6 +33,7 @@ library(tools)
 plan(multisession)
 
 wt_aru_scanner <- function(path, file_type) {
+  tic()
   dfraw <-
     # First list then retrieve file size
     dir_ls(path = path, recurse = TRUE, regexp = file_type) %>>%
@@ -62,7 +63,8 @@ wt_aru_scanner <- function(path, file_type) {
            stereo = future_map(.x = data, .f = ~ pluck(.x@stereo))) %>%
      select(filepath, filename, size_Mb, location, recording_date_time, year, julian, time_index, ftype, length_seconds, sample_rate, stereo) %>%
      unnest(c('length_seconds', 'sample_rate', 'stereo'))
-  return(as.data.frame(dfraw))
+  toc()
+  return(list(as.data.frame(dfraw),print(paste0('Scanned ', sum(dfraw$size_Mb), ' MB of files in ', toc.outmsg()))))
 }
 
 
