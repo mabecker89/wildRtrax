@@ -9,10 +9,7 @@
 #'
 #' @examples z<-wt_aru_scanner('/volumes/budata/abmi/2019/01','\\.wac$|\\.wav$|\\.mp3$')
 #'
-#'
-----------------------------
-
-# Alternative structure for scanner
+#'----------------------------# Alternative structure for scanner
 
 # All required packages
 library(furrr)
@@ -33,10 +30,11 @@ library(tools)
 plan(multisession)
 
 wt_aru_scanner <- function(path, file_type) {
-  tic()
   dfraw <-
     # First list then retrieve file size
-    dir_ls(path = path, recurse = TRUE, regexp = file_type) %>>%
+    dir_ls(path = path,
+           recurse = TRUE,
+           regexp = file_type) %>>%
     "Scanning audio files ..." %>>%
     future_map_dbl(., .f = ~ file_size(.), .progress = TRUE) %>%
     enframe() %>%
@@ -46,10 +44,18 @@ wt_aru_scanner <- function(path, file_type) {
     mutate(filename = str_replace(basename(filepath), "\\..*", "")) %>%
     mutate(ftype = file_ext(filepath)) %>%
     # Parse location and recording date time
-    separate(filename, into = c("location", "recording_date_time"), sep = "\\_|\\[_0+1_]", extra = "merge", remove = FALSE) %>%
-    mutate(recording_date_time = ymd_hms(recording_date_time),
-           julian = yday(recording_date_time),
-           year = year(recording_date_time)) %>%
+    separate(
+      filename,
+      into = c("location", "recording_date_time"),
+      sep = "\\_|\\[_0+1_]",
+      extra = "merge",
+      remove = FALSE
+    ) %>%
+    mutate(
+      recording_date_time = ymd_hms(recording_date_time),
+      julian = yday(recording_date_time),
+      year = year(recording_date_time)
+    ) %>%
     arrange(location, recording_date_time) %>%
     # Create time index
     group_by(location, year, julian) %>%
@@ -57,17 +63,31 @@ wt_aru_scanner <- function(path, file_type) {
     ungroup() %>>%
     # Obtain metadata from audio files
     "Audio files scanned. Extracting metadata ..." %>>%
-    mutate(data = future_map(.x = filepath, .f = ~ read_audio(.x, from = 0, to = Inf), .progress = TRUE),
-           length_seconds = future_map(.x = data, .f = ~ pluck(round((length(.x@left) / .x@samp.rate), 2))),
-           sample_rate = future_map(.x = data, .f = ~ pluck(.x@samp.rate)),
-           stereo = future_map(.x = data, .f = ~ pluck(.x@stereo))) %>%
-     select(filepath, filename, size_Mb, location, recording_date_time, year, julian, time_index, ftype, length_seconds, sample_rate, stereo) %>%
-     unnest(c('length_seconds', 'sample_rate', 'stereo'))
-  toc()
-  return(list(as.data.frame(dfraw),print(paste0('Scanned ', sum(dfraw$size_Mb), ' MB of files in ', toc.outmsg()))))
+    mutate(
+      data = future_map(
+        .x = filepath,
+        .f = ~ readWave(.x, from = 0, to = Inf),
+        .progress = TRUE
+      ),
+      length_seconds = future_map(.x = data, .f = ~ pluck(round((length(.x@left) / .x@samp.rate), 2
+      ))),
+      sample_rate = future_map(.x = data, .f = ~ pluck(.x@samp.rate)),
+      stereo = future_map(.x = data, .f = ~ pluck(.x@stereo))
+    ) %>%
+    select(
+      filepath,
+      filename,
+      size_Mb,
+      location,
+      recording_date_time,
+      year,
+      julian,
+      time_index,
+      ftype,
+      length_seconds,
+      sample_rate,
+      stereo
+    ) %>%
+    unnest(c('length_seconds', 'sample_rate', 'stereo'))
+  return(as.data.frame(dfraw))
 }
-
-
-
-
-
