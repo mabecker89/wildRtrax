@@ -16,6 +16,8 @@ wt_link<-function(df) {
     link<-tryCatch(system2(command),
                    error=function(e){
                      msg<-conditionMessage(e)
-                     print(paste0(msg2, ' for ', df$filepath[i]))
+                     print(paste0(msg, ' for ', df$filepath[i]))
                    })
   }}
+
+wt_link()
