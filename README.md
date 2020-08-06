@@ -1,8 +1,7 @@
 
 # wildRtrax<img src="man/figures/hex-logo-pipit.png" align="right" />
 
-> Queries, cleaning, analysis, and quality control of data from the
-> WildTrax database in R
+> A series of advanced user functions for environmental sensor data management, analytics and exploration. Also serves as an interface for data connectivity between the Boreal Avian Modelling Project, NatureCounts and WildTrax.
 
 <!-- badges: start -->
 
@@ -16,10 +15,8 @@ status](https://github.com/mabecker89/wildRtrax/workflows/R-CMD-check/badge.svg)
 
 ## Overview
 
-The **wildRtrax** package provides a set of functions to query
-environmental sensor data from the [WildTrax
-platform](https://www.wildtrax.ca/home.html), as well as perform basic
-data cleaning, analysis, and quality control in R.
+The **wildRtrax** package provides a set of functions to perform
+environmental sensor data management within the open data initiative framework, and fosters the connection of data between [NatureCounts](https://www.birdscanada.org/birdmon/default/main.jsp) the [Boreal Avian Modelling Project](https://borealbirds.ualberta.ca/) and WildTrax [WildTrax](https://www.wildtrax.ca/home.html). Mainly written in R, Python and bash. 
 
 ## Issues
 
@@ -33,4 +30,4 @@ you can email Alex MacPhail <agmacpha@ualberta.ca> or Marcus Becker
 
 This R package is licensed under [MIT
 license](https://github.com/mabecker89/wildRtrax/blob/master/LICENSE) ©
-2020 Marcus Becker, Alex MacPhail, and the ABMI.
+2020 Marcus Becker, Alex MacPhail, and the [ABMI](https://www.abmi.ca/home.html).
