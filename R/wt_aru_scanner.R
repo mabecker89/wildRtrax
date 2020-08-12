@@ -47,7 +47,7 @@ wt_aru_scanner <- function(path, file_type) {
     separate(
       filename,
       into = c("location", "recording_date_time"),
-      sep = "\\_|\\[_0+1_]",
+      sep = "(?:_0\\+1_|_)",
       extra = "merge",
       remove = FALSE
     ) %>%
@@ -64,15 +64,10 @@ wt_aru_scanner <- function(path, file_type) {
     # Obtain metadata from audio files
     "Audio files scanned. Extracting metadata ..." %>>%
     mutate(
-      data = future_map(
-        .x = filepath,
-        .f = ~ readWave(.x, from = 0, to = Inf),
-        .progress = TRUE
-      ),
-      length_seconds = future_map(.x = data, .f = ~ pluck(round((length(.x@left) / .x@samp.rate), 2
-      ))),
-      sample_rate = future_map(.x = data, .f = ~ pluck(.x@samp.rate)),
-      stereo = future_map(.x = data, .f = ~ pluck(.x@stereo))
+      data = future_map(.x = filepath, .f = ~ readWave(.x, from = 0, to = Inf, units = "seconds", header = T), .progress = TRUE),
+      length_seconds = future_map(.x = data, .f = ~ round(.x$samples/.x$sample.rate,0)),
+      sample_rate = future_map(.x = data, .f = ~ pluck(.x$sample.rate)),
+      stereo = future_map(.x = data, .f = ~ pluck(.x$channels))
     ) %>%
     select(
       filepath,
@@ -91,3 +86,5 @@ wt_aru_scanner <- function(path, file_type) {
     unnest(c('length_seconds', 'sample_rate', 'stereo'))
   return(as.data.frame(dfraw))
 }
+
+blpw_r<-wt_aru_scanner('/volumes/budata/enwa/enwa-o-09-03','\\.wav$')
