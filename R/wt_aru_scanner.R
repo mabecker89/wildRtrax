@@ -3,11 +3,11 @@
 #' @param path
 #' @param file_type
 #'
-#' @import furr fs pipeR tibble stringr lubridate tidyverese bioacoustics soundecology seewave tuneR tictoc tools
+#' @import furr fs pipeR tibble stringr lubridate tidyverese tuneR tictoc tools
 #' @return dfraw, summary of scanned volume and time
 #' @export
 #'
-#' @examples z<-wt_aru_scanner('/volumes/budata/abmi/2019/01','\\.wac$|\\.wav$|\\.mp3$')
+#' @examples z<-wt_aru_scanner('/volumes/budata/abmi/2019/01','\\.wac$|\\.wav$')
 #'
 #'----------------------------# Alternative structure for scanner
 
@@ -30,15 +30,16 @@ library(magick)
 library(doParallel)
 library(ssh)
 
-# For parallel processing:
-session <- ssh_connect("amacphail@nfs.wildtrax.ca")
-pwd <- ssh_exec_internal(session, command = 'cd /media/BUdata03/ABMI/2019/01/ABMI-0509/ABMI-0509-SW && find . -type f && pwd')
-pwd_r <- data.frame(t(matrix(unlist(strsplit(rawToChar(pwd$stdout),"\n")), nrow=length(strsplit(rawToChar(pwd$stdout),"\n")), byrow=T)))
-colnames(pwd_r)[1]<-"filepath"
-pwd_r$filepath<-gsub("./",'/media/BUdata03/ABMI/2019/01/ABMI-0509/ABMI-0509-SW/',pwd_r$filepath)
+#Example usage
+tw <-
+  wt_aru_scanner('/users/alexandremacphail/desktop/testwav', '\\.wav$|\\.wac$')
+
+#Look at a wave object
+f<-read_audio('/users/alexandremacphail/desktop/testwav/test2/ABMI-0509-SW_0+1_20190319_141314.wac')
+#Look at a list read from a wav file
+g<-readWave('/users/alexandremacphail/desktop/testwav/test2/ABMI-0509-SE_20190319_142713.wav', header = T)
 
 plan(multisession)
-
 wt_aru_scanner <- function(path, file_type) {
   tic()
   dfraw <-
@@ -73,14 +74,28 @@ wt_aru_scanner <- function(path, file_type) {
     mutate(time_index = row_number()) %>%
     ungroup() %>>%
     # Obtain metadata from audio files
-    "Audio files scanned. Extracting metadata ..." %>>%
-    group_by(ftype) %>%
-    mutate(
-      data = future_map_if(.x = filepath, .p = (ftype == 'wav'), .f = ~ readWave(.x, from = 0, to = Inf, units = "seconds", header = T), .else = ~ read_audio(.x, from = 0, to = Inf), .progress = TRUE),
-      length_seconds = future_map_if(.x = data, .p = (ftype == 'wav'), .f = ~ pluck(round(.x$samples/.x$sample.rate,0)), .else = ~ pluck(round(length(.x@left)/.x@samp.rate,2))),
-      sample_rate = future_map_if(.x = data, .p = (ftype == 'wav'), .f = ~ pluck(.x$sample.rate)),
-      stereo = future_map_if(.x = data, .p = (ftype == 'wav'), .f = ~ pluck(.x$channels))) %>%
-    ungroup() %>%
+    "Audio files scanned. Extracting metadata ..." %>>% #MARCUS HALPPPP
+    group_by(ftype) %>% #Group by filetype to lighten the futures load if need be (only when storing wave objects)
+    mutate(data = future_map_if(.x = filepath, #choose the filepath
+                             .p = ftype == 'wav', #predicate with type
+                             .f = ~ readWave(.x, from = 0, to = Inf, units = "seconds", header = T), #if true, reads a wave file as a list because of header = T. You don't want it to be false otherwise it will read it as an S4 wave object **too big**
+                             .else = ~ lst(sample_rate = read_audio(.x, from = 0, to = Inf)@samp.rate, #Create a list that mimics the header = T list that comes out of readWave. Note @ pipe for S4 objects
+                                           channels = read_audio(.x, from = 0, to = Inf)@stereo,
+                                           samples = length(read_audio(.x, from = 0, to = Inf)@left)),
+                             .progress = TRUE),
+           length_seconds = future_map_if(.x = data,
+                                          .p = ftype == 'wav',
+                                          .f = ~ as.factor(round(.x$samples / .x$sample.rate,0)), #Made everything factors to force them into the columns
+                                          .else ~ as.factor(.x[[3]]/.x[[1]])), #extract specific items from list not working!!
+           sample_rate = future_map_if(.x = data,
+                                       .p = ftype == 'wav',
+                                       .f = ~ as.factor(.x$sample.rate),
+                                       .else ~ as.factor(.x[[1]])),
+           n_channels = future_map_if(.x = data,
+                                   .p = ftype == 'wav',
+                                   .f = ~ as.factor(.x$channels),
+                                   .else = ~ as.factor(.x[[2]]))) %>%
+    ungroup() %>% #Finalize tibble
     select(
       filepath,
       filename,
@@ -93,18 +108,26 @@ wt_aru_scanner <- function(path, file_type) {
       ftype,
       length_seconds,
       sample_rate,
-      stereo
-     ) %>%
-    unnest(c("length_seconds","sample_rate","stereo"))
-  return(as_tibble(dfraw))
+      n_channels
+    ) %>%
+    unnest(c("length_seconds", "sample_rate", "n_channels")) #take just one value from the nested cells
+  return(as_tibble(dfraw)) #Output as a tibble
 }
 
-tw<-wt_aru_scanner('/volumes/budata/notproofed/2020/01/RETNO','\\.wav$')
 
-
-s<-read_audio('/users/alexandremacphail/desktop/testwav/ABMI-0509-SW_0+1_20190319_141314.wac')
-t<-readWave('/users/alexandremacphail/desktop/testwav/ABMI-0509-SE_20190319_142713.wav', from=0, to=600, units="seconds", header=T)
-con<-file('/users/alexandremacphail/desktop/testwav/ABMI-0509-SW_0+1_20190319_141314.wac',"r")
-con2<-readBin(con, integer(), n=1, size=4, endian="little")
-
+# For ssh connections: an experiment
+session <- ssh_connect("amacphail@nfs.wildtrax.ca")
+pwd <-
+  ssh_exec_internal(session, command = 'cd /media/BUdata03/ABMI/2019/01/ABMI-0509/ABMI-0509-SW && find . -type f && pwd')
+pwd_r <-
+  data.frame(t(matrix(
+    unlist(strsplit(rawToChar(pwd$stdout), "\n")),
+    nrow = length(strsplit(rawToChar(pwd$stdout), "\n")),
+    byrow = T
+  )))
+colnames(pwd_r)[1] <- "filepath"
+pwd_r$filepath <-
+  gsub("./",
+       '/media/BUdata03/ABMI/2019/01/ABMI-0509/ABMI-0509-SW/',
+       pwd_r$filepath)
 
