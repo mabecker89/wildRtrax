@@ -70,5 +70,7 @@ wt_invoices_status <- function(users, cycle, outpath) {
 }
 
 #Example
-wt_inv <- wt_invoices_status(users = c("Brandon Law","Christopher Moser-Purdy"), cycle = '2020-07', outpath = '/users/alexandremacphail/test2')
+wt_inv <- wt_invoices_status(users = c("Tyne Baker"),
+                             cycle = '2020-05',
+                             outpath = '/users/alexandremacphail/desktop')
 

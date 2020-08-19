@@ -11,13 +11,11 @@
 library(httr)
 library(jsonlite)
 
-wt_api_get <- function (res) {
-  res = GET("https://www-api.wildtrax.ca")
+wt_api_get <- function (site) {
+  res = GET(site)
   return (res)
 }
 
+x <- wt_api_get("https://www.wildtrax.ca")
+y <- fromJSON(rawToChar(x$content))
 
-# rawToChar(res$content)
-# data = fromJSON(rawToChar(res$content))
-# names(data)
-# data$people

@@ -25,11 +25,22 @@ library(seewave)
 library(tuneR)
 library(tictoc)
 library(tools)
+library(purrr)
+library(magick)
+library(doParallel)
+library(ssh)
 
 # For parallel processing:
+session <- ssh_connect("amacphail@nfs.wildtrax.ca")
+pwd <- ssh_exec_internal(session, command = 'cd /media/BUdata03/ABMI/2019/01/ABMI-0509/ABMI-0509-SW && find . -type f && pwd')
+pwd_r <- data.frame(t(matrix(unlist(strsplit(rawToChar(pwd$stdout),"\n")), nrow=length(strsplit(rawToChar(pwd$stdout),"\n")), byrow=T)))
+colnames(pwd_r)[1]<-"filepath"
+pwd_r$filepath<-gsub("./",'/media/BUdata03/ABMI/2019/01/ABMI-0509/ABMI-0509-SW/',pwd_r$filepath)
+
 plan(multisession)
 
 wt_aru_scanner <- function(path, file_type) {
+  tic()
   dfraw <-
     # First list then retrieve file size
     dir_ls(path = path,
@@ -63,12 +74,13 @@ wt_aru_scanner <- function(path, file_type) {
     ungroup() %>>%
     # Obtain metadata from audio files
     "Audio files scanned. Extracting metadata ..." %>>%
+    group_by(ftype) %>%
     mutate(
-      data = future_map(.x = filepath, .f = ~ readWave(.x, from = 0, to = Inf, units = "seconds", header = T), .progress = TRUE),
-      length_seconds = future_map(.x = data, .f = ~ round(.x$samples/.x$sample.rate,0)),
-      sample_rate = future_map(.x = data, .f = ~ pluck(.x$sample.rate)),
-      stereo = future_map(.x = data, .f = ~ pluck(.x$channels))
-    ) %>%
+      data = future_map_if(.x = filepath, .p = (ftype == 'wav'), .f = ~ readWave(.x, from = 0, to = Inf, units = "seconds", header = T), .else = ~ read_audio(.x, from = 0, to = Inf), .progress = TRUE),
+      length_seconds = future_map_if(.x = data, .p = (ftype == 'wav'), .f = ~ pluck(round(.x$samples/.x$sample.rate,0)), .else = ~ pluck(round(length(.x@left)/.x@samp.rate,2))),
+      sample_rate = future_map_if(.x = data, .p = (ftype == 'wav'), .f = ~ pluck(.x$sample.rate)),
+      stereo = future_map_if(.x = data, .p = (ftype == 'wav'), .f = ~ pluck(.x$channels))) %>%
+    ungroup() %>%
     select(
       filepath,
       filename,
@@ -82,9 +94,17 @@ wt_aru_scanner <- function(path, file_type) {
       length_seconds,
       sample_rate,
       stereo
-    ) %>%
-    unnest(c('length_seconds', 'sample_rate', 'stereo'))
-  return(as.data.frame(dfraw))
+     ) %>%
+    unnest(c("length_seconds","sample_rate","stereo"))
+  return(as_tibble(dfraw))
 }
 
-blpw_r<-wt_aru_scanner('/volumes/budata/enwa/enwa-o-09-03','\\.wav$')
+tw<-wt_aru_scanner('/volumes/budata/notproofed/2020/01/RETNO','\\.wav$')
+
+
+s<-read_audio('/users/alexandremacphail/desktop/testwav/ABMI-0509-SW_0+1_20190319_141314.wac')
+t<-readWave('/users/alexandremacphail/desktop/testwav/ABMI-0509-SE_20190319_142713.wav', from=0, to=600, units="seconds", header=T)
+con<-file('/users/alexandremacphail/desktop/testwav/ABMI-0509-SW_0+1_20190319_141314.wac',"r")
+con2<-readBin(con, integer(), n=1, size=4, endian="little")
+
+

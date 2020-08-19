@@ -9,13 +9,14 @@
 
 # Establish connection to Wildtrax database
 wt_conn <- function(username, password) {
-
-  conn <- DBI::dbConnect(drv = dbDriver("PostgreSQL"),
-                        dbname = "wildtrax",
-                        host = "prod.wildtrax.ca",
-                        port = "5432",
-                        user = username,
-                        password = password)
+  conn <- DBI::dbConnect(
+    drv = dbDriver("PostgreSQL"),
+    dbname = "wildtrax",
+    host = "prod.wildtrax.ca",
+    port = "5432",
+    user = username,
+    password = password
+  )
 
   return(conn)
 
