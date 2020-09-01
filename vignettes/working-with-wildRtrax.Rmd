@@ -1,6 +1,6 @@
 ---
 title: "Working with wildRtrax"
-output: rmarkdown::html_vignette
+output: rmarkdown::html_vignette #pdf_document
 vignette: >
   %\VignetteIndexEntry{Working-With-Wildtrax}
   %\VignetteEngine{knitr::rmarkdown}
@@ -9,10 +9,36 @@ vignette: >
 
 ```{r, include = FALSE}
 
+setwd('/users/alexandremacphail/desktop/testwav-1')
+
+# All required packages
+library(furrr)
+library(fs)
+library(pipeR)
+library(tibble)
+library(stringr)
+library(lubridate)
+library(tidyverse)
+library(bioacoustics)
+library(soundecology)
+library(seewave)
+library(tuneR)
+library(tictoc)
+library(tools)
+library(purrr)
+library(magick)
+library(ssh)
+library(png)
+
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
 )
+
+blanktheme<-theme_bw() +
+    theme(panel.background = element_blank(), 
+      panel.grid.major = element_blank(), 
+      panel.grid.minor = element_blank())
 
 ```
 
@@ -22,23 +48,141 @@ This document contains an outline for how to use the R package **wildRtrax** for
 
 ### What is **wildRtrax**?
 
-**wildRtrax** is an R package for ecologists and advanced users who work with environmental sensor data, mainly from acoustic recordings units (ARUs) or remote game cameras. It contains functions designed to meet most needs in order to organize, analyze and standardize data. **wildRtrax** is self-contained and must be run under an R statistical environment, and it also depends on many other R packages. **wildRtrax** is [FREE SOFTWARE] and distributed under [MIT License (c) 2020](https://github.com/mabecker89/wildRtrax/blob/master/LICENSE). All package functions are designed to standardize data to the [WildTrax](https://wwww.wildtrax.ca) infrastructure.
+**wildRtrax**, pronounced *'wilder tracks'*, is an R package for ecologists and advanced users who work with environmental sensor data, mainly from acoustic recordings units (ARUs) or remote game cameras. It contains functions designed to meet most needs in order to organize, analyze and standardize data. **wildRtrax** is self-contained and must be run under an R statistical environment, and it also depends on many other R packages. **wildRtrax** is [FREE SOFTWARE] and distributed under [MIT License (c) 2020](https://github.com/mabecker89/wildRtrax/blob/master/LICENSE). All package functions are designed to standardize data to the [WildTrax](https://wwww.wildtrax.ca) infrastructure.
 
 ### What is **WildTrax**?
 
 [**WildTrax**](https://wwww.wildtrax.ca) is a web-enabled portal to centralize, store, manage and share environmental sensor data. It was developed by the [Alberta Biodiversity Monitoring Institute](https://abmi.ca) and the [Bioacoustic Unit](https://bioacoustic.abmi.ca). **wildRtrax** serves as a parallel design and indicator to analytics and functions that can be developed in **WildTrax**. 
 
-### What R packages does **wildRtrax** depends on?
+### What R packages does **wildRtrax** depend on?
 
 **wildRtrax** depends on a multitude of packages to provide flexible routines and work flows for data management. [tidyverse](https://tidyverse.org) for piping functions, standard grammar and data manipulation, [furrr](https://davisvaughan.github.io/furrr/) and [doParallel](https://cran.r-project.org/web/packages/doParallel/index.html) for parallel computing, and acoustic analysis packages: [bioacoustics](https://cran.r-project.org/web/packages/bioacoustics/index.html), [tuneR](https://cran.r-project.org/web/packages/tuneR/index.html), [seewave](https://cran.r-project.org/web/packages/seewave/seewave.pdf). Certain functions depend on the [QUT Ecoacoustics Analysis Software](https://github.com/QutEcoacoustics/audio-analysis)
 
---------------------------------------
+### Do I need to know any other programming langugages in order to use **wildRtrax**?
+
+Certain functions rely on Python, Shell (bash) scripts and SQL. You do not need to know the languages in order to use the functions but it is strongly encouraged to read the documentation.
+
+### How do I report a bug in **wildRtrax**?
+
+If you think you have found a bug in **wildRtrax**, you should report it to developers or maintainers. Please do not send bug reports to R mailing lists, since **wildRtrax** is not a standard R package. The preferred forum to report bugs is [GitHub](https://github.com/mabecker89/wildRtrax/issues).  Here is what is required in order to report a bug - issues are welcome and encouraged and are the only way to make **wildRtrax** non-buggy:
+
+* The bug report should be so detailed that the bug can be replicated and corrected
+* Send an example that causes a bug
+* Send a minimal dataset as well if it is not available in R
+* Paste the output or error message in your message
+* Specify which version of **wildRtrax** you used
+
+### Can I contribute to **wildRtrax**?
+
+Yes! **wildRtrax** is dependent on user contribution and all feedback is welcome. If you have problems with **wildRtrax**, it may be as simple as incomplete documentation. Feature requests also are welcome, but they are not necessarily fulfilled. A new feature will be added if it is easy to do and it looks useful to the userbase of the package, or if you submit fully annotated code.
+
+------------------------------------------------------------------------
 
 ## **Introduction**
 
-Autonomous recording units (ARUs) and remote game cameras (RGCs) collect data on the environment by means of capturing acoustic or visual sensor data. ARUs are used to survey a variety of species such as birds, amphibians, and bats. But really anything that gives a vocalizing cue. RGCs are best used to detect and monitor mammals. Check out [abmi.camera.extras](https://github.com/mabecker89/abmi.camera.extras) if you're interested in getting estimates of animal density collected from RGCs.
+Autonomous recording units (ARUs) and remote game cameras (RGCs) collect data on the environment by means of capturing acoustic or visual sensor data, respectively. ARUs are used to survey a variety of species such as birds, amphibians, and bats. But really anything that gives a vocalizing cue. RGCs are best used to detect and monitor mammals. Check out [abmi.camera.extras](https://github.com/mabecker89/abmi.camera.extras) if you're interested in getting estimates of animal density collected from RGCs.
 
 Both environmental sensors are designed to record sound or images autonomously for long periods of time. This is turn can accrue a large amount of data.
+
+### **Audio file formats**
+
+There are four major audio file types used within the **wildRtrax** framework: *wac*, *wav*, *mp3* and *flac*
+
+* *wac, w4v* is a proprietary, lossless compressed file format developed by [Wildlife Acoustics](https://www.wildlifeacoustics.com/)
+* *wav* is the standard, ubiquitous uncompressed audio file format AKA *"CD quality"*
+* *mp3* a lossy compressed audio file format; works by reducing the accuracy of certain sound components, and eliminating others
+* *flac* a lossless compressed format useful for efficiently packing audio data
+
+```{r Audio files, include = TRUE}
+
+audio_files <-
+  # First list then retrieve file size from a given directory
+  dir_ls(path = '/users/alexandremacphail/desktop/testwav-1/',
+         recurse = TRUE,
+         regexp = '\\.wac$|\\.w4v$|\\.wav$|\\.mp3$|\\.flac$') %>>%
+  "Scanning audio files ..." %>>%
+  future_map_dbl(., .f = ~ file_size(.), .progress = TRUE) %>%
+  enframe() %>%
+  # Convert size to megabytes
+  mutate(
+    size = round(value / 10e5, digits = 2),
+    filename = basename(name),
+    filetype = as_factor(file_ext(filename)),
+    compressed = case_when(filetype %in% c('wac', 'mp3', 'flac', '.w4v') ~ TRUE, TRUE ~ FALSE)) %>%
+  dplyr::select(name, filename, size, filetype, compressed)
+
+  
+```
+
+```{r Figure 1 - Audio file formats, fig.align='center', out.extra='angle=90', fig.width = 7, fig.height = 5, echo=FALSE, include = T}
+
+ggplot(audio_files, aes(x = reorder(filetype, size) , y = size, fill = compressed)) + geom_bar(stat="identity") + blanktheme + coord_flip() + xlab("Filetype") + ylab("Size (MB)")
+
+```
+
+Even using a high bit rate (b = 320) for the mp3 files, the reduction in size between file formats is significant. Nevertheless, loss of information in the audio data is an important consideration to make when converting or analyzing audio files. mp3 files that are stored in WildTrax for transcription, for example, truncate all acoustic data above 12 kHz. This is an important consideration to make when studying a species of interest - ensure the *sample rate* and *species frequency range* match. 
+
+### **Spectrograms**
+
+A *spectrogram* is a visual representation of the spectrum of frequencies of a signal as it varies with time ([Wikipedia](https://en.wikipedia.org/wiki/Spectrogram)). Spectrograms are also called *sonographs* in the context of bioacoustics or ecoacoustics. Spectrograms can be used to identify animal vocalizations by their unique spectral signature. Generally speaking, there are three pieces of information you can extract from a spectrogram:
+
+* Length of the vocalization via the x-axis in time
+* Frequency range of the vocalization via the y-axis in Hz
+* Relative amplitude of the vocalization via the z-axis in dBFS ([*decibels relative to full scale*](https://en.wikipedia.org/wiki/DBFS))
+
+Let's create a spectrogram to get a better looks at some of those audio files. Here's one way to do it using the ggspectro in **seewave**. 
+
+```{r Figure 2 - Create a spectrogram, fig.align='center', out.extra='angle=90', fig.width = 7, fig.height = 5, warnings = FALSE, include = TRUE}
+
+#Let's filter by some dawn recordings in May
+audio_files <- audio_files %>%
+  filter(filename %in% c('ABMI-0320-NE_0+1_20180529_054500.wav','ABMI-0320-NE_0+1_20180528_054600.wav'))
+
+#You can use something like a loop and ggpspectro from seewave
+for (i in 1:nrow(audio_files)) {
+  tryCatch(
+      t <- readWave(audio_files$name[i], from = 0, to = 60, units ="seconds"),
+      error = function(e) {
+        msg <- conditionMessage(e)
+        print(paste0(msg, i, sep=' *** '))}
+    )
+  v <- ggspectro(t, ovlp = 50) + geom_tile(aes(fill=amplitude)) + labs(title = audio_files$filename[i]) + blanktheme
+  print(v)
+}
+
+```
+
+**SoX** is also a very powerful command line tool that can build spectrograms as well. Processing time here is much faster given R does have to read in the file as an S4 wave object. More on this later. 
+
+```{r sox images in bash, engine='bash'}
+
+#Or try a bash command using sox
+cd /users/alexandremacphail/desktop/testwav-1 && for file in *.wav; do outfile="${file%.*}.png"; title_in_pic="${file%.*}"; sox "$file" -n spectrogram -l -m -t "$title_in_pic" -o "$outfile"; done
+
+```
+
+You'll notice that we are not manipulating any of the features of the wav file - simply reading in the raw acoustic information. You can read the pngs back into R using and create an array of images. See **magick** for more functionality. 
+
+```{r Read sox images}
+
+pics <- list.files("/users/alexandremacphail/desktop/testwav-1",".png", recursive = T, full.names = T)
+images <- image_read(pics)
+image_append(image_border(images, "black", "5x5"), stack = TRUE)
+
+```
+
+### **Metadata dependencies for acoustic data**
+
+Wildife Acoustics, Frontier, AudioMoth, 
+
+
+Let's look at the different ways various ARUs output their data and how we can manipulate it.
+
+
+### **Photo file formats**
+
+
+
 
 
 ```{r setup}
@@ -53,7 +197,15 @@ Both environmental sensors are designed to record sound or images autonomously f
 
 ### From the field to the office
 
+Familiarity with processes, protocols, equipment and data is a huge first step in understanding management processes for environmental sensor data. **wildRtrax** doesn't focus on the field components of the process but is heavily dependent on it as it where the metadata 
+
+More information on project-specific sampling designs can be found in the **Analytics** section
+
+**Set files** are used in the Wildlife Acoustics units. 
+
 ### Data volume, storage and computing power
+
+
 
 ### Scanning through data: *wt_aru_scanner*
 
