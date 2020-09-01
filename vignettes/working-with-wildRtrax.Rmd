@@ -43,6 +43,7 @@ knitr::opts_chunk$set(
 )
 
 ```
+#Welcome to wildRtrax! This package contains functions and tools designed to help with environmental sensor data management.
 
 
 ```{r setup}
