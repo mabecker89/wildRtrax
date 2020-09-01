@@ -7,34 +7,6 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-
-This document contains an outline for how to use the R package **wildRtrax** for environmental sensor data management and analytics. 
-
-### What is **wildRtrax**?
-
-**wildRtrax** is an R package for ecologists and advanced users who work with environmental sensor data, mainly from acoustic recordings units (ARUs) or remote game cameras. It contains functions designed to meet most needs in order to organize, analyze and standardize data. **wildRtrax** is self-contained and must be run under an R statistical environment, and it also depends on many other R packages. **wildRtrax** is [FREE SOFTWARE] and distributed under [LICENSE]. All package functions are designed to standardize data to the [WildTrax](https://wwww.wildtrax.ca) infrastructure.
-
-### What is **WildTrax**?
-
-[**WildTrax**](https://wwww.wildtrax.ca) is a web-enabled portal to centralize, store, manage and share environmental sensor data. It was developed by the [Alberta Biodiversity Monitoring Institute](https://abmi.ca) and the [Bioacoustic Unit](https://bioacoustic.abmi.ca). **wildRtrax** serves as a parallel design and indicator to analytics and functions that can be developed in **WildTrax**. 
-
-### What R packages does **wildRtrax** depends on?
-
-**wildRtrax** depends on a multitude of packages to provide flexible routines and work flows for data management. [**tidyverse**](https://tidyverse.org) for piping functions, standard grammar and data manipulation, [**furrr**](https://davisvaughan.github.io/furrr/) and **doParallel** for parallel computing, and a myriad of acoustic analysis packages: **bioacoustics**, **tuneR**, **seewave**. Certain functions depend on the [**QUT Ecoacoustics Analysis Software**](https://github.com/QutEcoacoustics/audio-analysis)
-
---------------------------------------
-
-## **Introduction**
-
-Autonomous recording units (ARUs) and remote game cameras (RGCs) collect data on the environment by means of capturing acoustic or visual sensor data. ARUs are used to survey a variety of species such as birds, amphibians, and bats. But really anything that gives a vocalizing cue. RGCs are best used to detect and monitor mammals. Check out [abmi.camera.extras](https://github.com/mabecker89/abmi.camera.extras) if you're interested in getting estimates of animal density collected from RGCs.
-
-
---------------------------------------
-
-
-
-------------------------------------------------------------------------
-
 ```{r, include = FALSE}
 
 knitr::opts_chunk$set(
@@ -43,7 +15,30 @@ knitr::opts_chunk$set(
 )
 
 ```
-#Welcome to wildRtrax! This package contains functions and tools designed to help with environmental sensor data management.
+
+This document contains an outline for how to use the R package **wildRtrax** for environmental sensor data management and analytics. 
+
+## **FAQ**
+
+### What is **wildRtrax**?
+
+**wildRtrax** is an R package for ecologists and advanced users who work with environmental sensor data, mainly from acoustic recordings units (ARUs) or remote game cameras. It contains functions designed to meet most needs in order to organize, analyze and standardize data. **wildRtrax** is self-contained and must be run under an R statistical environment, and it also depends on many other R packages. **wildRtrax** is [FREE SOFTWARE] and distributed under [MIT License (c) 2020](https://github.com/mabecker89/wildRtrax/blob/master/LICENSE). All package functions are designed to standardize data to the [WildTrax](https://wwww.wildtrax.ca) infrastructure.
+
+### What is **WildTrax**?
+
+[**WildTrax**](https://wwww.wildtrax.ca) is a web-enabled portal to centralize, store, manage and share environmental sensor data. It was developed by the [Alberta Biodiversity Monitoring Institute](https://abmi.ca) and the [Bioacoustic Unit](https://bioacoustic.abmi.ca). **wildRtrax** serves as a parallel design and indicator to analytics and functions that can be developed in **WildTrax**. 
+
+### What R packages does **wildRtrax** depends on?
+
+**wildRtrax** depends on a multitude of packages to provide flexible routines and work flows for data management. [tidyverse](https://tidyverse.org) for piping functions, standard grammar and data manipulation, [furrr](https://davisvaughan.github.io/furrr/) and [doParallel](https://cran.r-project.org/web/packages/doParallel/index.html) for parallel computing, and acoustic analysis packages: [bioacoustics](https://cran.r-project.org/web/packages/bioacoustics/index.html), [tuneR](https://cran.r-project.org/web/packages/tuneR/index.html), [seewave](https://cran.r-project.org/web/packages/seewave/seewave.pdf). Certain functions depend on the [QUT Ecoacoustics Analysis Software](https://github.com/QutEcoacoustics/audio-analysis)
+
+--------------------------------------
+
+## **Introduction**
+
+Autonomous recording units (ARUs) and remote game cameras (RGCs) collect data on the environment by means of capturing acoustic or visual sensor data. ARUs are used to survey a variety of species such as birds, amphibians, and bats. But really anything that gives a vocalizing cue. RGCs are best used to detect and monitor mammals. Check out [abmi.camera.extras](https://github.com/mabecker89/abmi.camera.extras) if you're interested in getting estimates of animal density collected from RGCs.
+
+Both environmental sensors are designed to record sound or images autonomously for long periods of time. This is turn can accrue a large amount of data.
 
 
 ```{r setup}
@@ -52,4 +47,40 @@ knitr::opts_chunk$set(
 
 ```
 
+--------------------------------------
 
+## **Working with messy data: data management**
+
+### From the field to the office
+
+### Data volume, storage and computing power
+
+### Scanning through data: *wt_aru_scanner*
+
+### Assessing the situation
+
+### Resolving data structure issues: *Python functions*
+
+### Summarizing results
+
+--------------------------------------
+
+## **Working with a clean dataset: pushing to WildTrax**
+
+### Scanning and subsetting
+
+### Linking data for quick upload
+
+------------------------------------------------------------------------
+
+## **Analytics**
+
+### Seasonal phenology
+
+------------------------------------------------------------------------
+
+## **Future directions**
+
+
+
+------------------------------------------------------------------------
