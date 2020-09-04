@@ -1,14 +1,10 @@
 ---
 title: "Working with wildRtrax"
-output: rmarkdown::html_vignette #pdf_document
-vignette: >
-  %\VignetteIndexEntry{Working-With-Wildtrax}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
+output: html_document #pdf_document
+runtime: shiny
 ---
 
 ```{r, include = FALSE}
-
 setwd('/users/alexandremacphail/desktop/testwav-1')
 
 # All required packages
@@ -29,6 +25,8 @@ library(purrr)
 library(magick)
 library(ssh)
 library(png)
+library(plotly)
+library(shiny)
 
 knitr::opts_chunk$set(
   collapse = TRUE,
@@ -48,7 +46,7 @@ This document contains an outline for how to use the R package **wildRtrax** for
 
 ### What is **wildRtrax**?
 
-**wildRtrax**, pronounced *'wilder tracks'*, is an R package for ecologists and advanced users who work with environmental sensor data, mainly from acoustic recordings units (ARUs) or remote game cameras. It contains functions designed to meet most needs in order to organize, analyze and standardize data. **wildRtrax** is self-contained and must be run under an R statistical environment, and it also depends on many other R packages. **wildRtrax** is [FREE SOFTWARE] and distributed under [MIT License (c) 2020](https://github.com/mabecker89/wildRtrax/blob/master/LICENSE). All package functions are designed to standardize data to the [WildTrax](https://wwww.wildtrax.ca) infrastructure.
+**wildRtrax**, pronounced *'wilder tracks'*, is an R package for ecologists and advanced users who work with environmental sensor data, mainly from acoustic recordings units (ARUs) or remote game cameras (RGCs). It contains functions designed to meet most needs in order to organize, analyze and standardize data. **wildRtrax** is self-contained and must be run under an R statistical environment, and it also depends on many other R packages. **wildRtrax** is free software and distributed under [MIT License (c) 2020](https://github.com/mabecker89/wildRtrax/blob/master/LICENSE). All package functions are designed to standardize data to the [WildTrax](https://wwww.wildtrax.ca) infrastructure.
 
 ### What is **WildTrax**?
 
@@ -56,7 +54,7 @@ This document contains an outline for how to use the R package **wildRtrax** for
 
 ### What R packages does **wildRtrax** depend on?
 
-**wildRtrax** depends on a multitude of packages to provide flexible routines and work flows for data management. [tidyverse](https://tidyverse.org) for piping functions, standard grammar and data manipulation, [furrr](https://davisvaughan.github.io/furrr/) and [doParallel](https://cran.r-project.org/web/packages/doParallel/index.html) for parallel computing, and acoustic analysis packages: [bioacoustics](https://cran.r-project.org/web/packages/bioacoustics/index.html), [tuneR](https://cran.r-project.org/web/packages/tuneR/index.html), [seewave](https://cran.r-project.org/web/packages/seewave/seewave.pdf). Certain functions depend on the [QUT Ecoacoustics Analysis Software](https://github.com/QutEcoacoustics/audio-analysis)
+**wildRtrax** depends on a multitude of packages to provide flexible routines and work flows for data management. [`tidyverse`](https://tidyverse.org) for piping functions, standard grammar and data manipulation, [`furrr`](https://davisvaughan.github.io/furrr/) and [`doParallel`](https://cran.r-project.org/web/packages/doParallel/index.html) for parallel computing, and acoustic analysis packages: [`bioacoustics`](https://cran.r-project.org/web/packages/bioacoustics/index.html), [`tuneR`](https://cran.r-project.org/web/packages/tuneR/index.html), [`seewave`](https://cran.r-project.org/web/packages/seewave/seewave.pdf). Certain functions depend on the [QUT Ecoacoustics Analysis Software](https://github.com/QutEcoacoustics/audio-analysis)
 
 ### Do I need to know any other programming langugages in order to use **wildRtrax**?
 
@@ -76,25 +74,27 @@ If you think you have found a bug in **wildRtrax**, you should report it to deve
 
 Yes! **wildRtrax** is dependent on user contribution and all feedback is welcome. If you have problems with **wildRtrax**, it may be as simple as incomplete documentation. Feature requests also are welcome, but they are not necessarily fulfilled. A new feature will be added if it is easy to do and it looks useful to the userbase of the package, or if you submit fully annotated code.
 
+
+
+
 ------------------------------------------------------------------------
 
 ## **Introduction**
 
-Autonomous recording units (ARUs) and remote game cameras (RGCs) collect data on the environment by means of capturing acoustic or visual sensor data, respectively. ARUs are used to survey a variety of species such as birds, amphibians, and bats. But really anything that gives a vocalizing cue. RGCs are best used to detect and monitor mammals. Check out [abmi.camera.extras](https://github.com/mabecker89/abmi.camera.extras) if you're interested in getting estimates of animal density collected from RGCs.
+Autonomous recording units (ARUs) and remote game cameras (RGCs) collect data on the environment by means of capturing acoustic or visual data, respectively. ARUs are used to survey a variety of species such as birds, amphibians, and bats. But really anything that gives a vocalizing cue. RGCs are best used to detect and monitor mammals. Check out [`abmi.camera.extras`](https://github.com/mabecker89/abmi.camera.extras) if you're interested in getting estimates of animal density collected from RGCs.
 
-Both environmental sensors are designed to record sound or images autonomously for long periods of time. This is turn can accrue a large amount of data.
+Both environmental sensors are designed to record sound or images autonomously for long periods of time. This is turn can accrue a large amount of data. 
 
 ### **Audio file formats**
 
 There are four major audio file types used within the **wildRtrax** framework: *wac*, *wav*, *mp3* and *flac*
 
-* *wac, w4v* is a proprietary, lossless compressed file format developed by [Wildlife Acoustics](https://www.wildlifeacoustics.com/)
+* *wac, w4v* are proprietary, lossless compressed file formats developed by [Wildlife Acoustics](https://www.wildlifeacoustics.com/)
 * *wav* is the standard, ubiquitous uncompressed audio file format AKA *"CD quality"*
 * *mp3* a lossy compressed audio file format; works by reducing the accuracy of certain sound components, and eliminating others
 * *flac* a lossless compressed format useful for efficiently packing audio data
 
 ```{r Audio files, include = TRUE}
-
 audio_files <-
   # First list then retrieve file size from a given directory
   dir_ls(path = '/users/alexandremacphail/desktop/testwav-1/',
@@ -103,37 +103,33 @@ audio_files <-
   "Scanning audio files ..." %>>%
   future_map_dbl(., .f = ~ file_size(.), .progress = TRUE) %>%
   enframe() %>%
-  # Convert size to megabytes
   mutate(
-    size = round(value / 10e5, digits = 2),
+    size = round(value / 10e5, digits = 2),   # Convert size to megabytes
     filename = basename(name),
     filetype = as_factor(file_ext(filename)),
     compressed = case_when(filetype %in% c('wac', 'mp3', 'flac', '.w4v') ~ TRUE, TRUE ~ FALSE)) %>%
   dplyr::select(name, filename, size, filetype, compressed)
-
   
 ```
 
 ```{r Figure 1 - Audio file formats, fig.align='center', out.extra='angle=90', fig.width = 7, fig.height = 5, echo=FALSE, include = T}
-
 ggplot(audio_files, aes(x = reorder(filetype, size) , y = size, fill = compressed)) + geom_bar(stat="identity") + blanktheme + coord_flip() + xlab("Filetype") + ylab("Size (MB)")
 
 ```
 
-Even using a high bit rate (b = 320) for the mp3 files, the reduction in size between file formats is significant. Nevertheless, loss of information in the audio data is an important consideration to make when converting or analyzing audio files. mp3 files that are stored in WildTrax for transcription, for example, truncate all acoustic data above 12 kHz. This is an important consideration to make when studying a species of interest - ensure the *sample rate* and *species frequency range* match. 
+Even using a high bit rate (b = 320) for the mp3 files, the reduction in size between file formats is significant. Nevertheless, loss of information in the audio data is an important consideration to make when converting or analyzing audio files. mp3 files that are stored in WildTrax for transcription, for example, truncate all acoustic data above 12 kHz. This is an important consideration to make when studying a species of interest - ensure the *sample rate (x2 for stereo)* and *species frequency range* match. 
 
 ### **Spectrograms**
 
-A *spectrogram* is a visual representation of the spectrum of frequencies of a signal as it varies with time ([Wikipedia](https://en.wikipedia.org/wiki/Spectrogram)). Spectrograms are also called *sonographs* in the context of bioacoustics or ecoacoustics. Spectrograms can be used to identify animal vocalizations by their unique spectral signature. Generally speaking, there are three pieces of information you can extract from a spectrogram:
+A *spectrogram* is a visual representation of the spectrum of frequencies of a signal as it varies with time ([Wikipedia](https://en.wikipedia.org/wiki/Spectrogram)). Spectrograms can be used to identify animal vocalizations by their unique spectral signature. Generally speaking, there are three pieces of information you can extract from a spectrogram:
 
-* Length of the vocalization via the x-axis in time
+* Length of the vocalization via the x-axis in seconds
 * Frequency range of the vocalization via the y-axis in Hz
 * Relative amplitude of the vocalization via the z-axis in dBFS ([*decibels relative to full scale*](https://en.wikipedia.org/wiki/DBFS))
 
-Let's create a spectrogram to get a better looks at some of those audio files. Here's one way to do it using the ggspectro in **seewave**. 
+Let's create a spectrogram to get a better looks at some of those audio files. Here's one way to do it using the `ggspectro` function in `**seewave**`. 
 
 ```{r Figure 2 - Create a spectrogram, fig.align='center', out.extra='angle=90', fig.width = 7, fig.height = 5, warnings = FALSE, include = TRUE}
-
 #Let's filter by some dawn recordings in May
 audio_files <- audio_files %>%
   filter(filename %in% c('ABMI-0320-NE_0+1_20180529_054500.wav','ABMI-0320-NE_0+1_20180528_054600.wav'))
@@ -152,62 +148,215 @@ for (i in 1:nrow(audio_files)) {
 
 ```
 
-**SoX** is also a very powerful command line tool that can build spectrograms as well. Processing time here is much faster given R does have to read in the file as an S4 wave object. More on this later. 
+**SoX** is also a very powerful command line tool that can build spectrograms as well. Processing time here is much faster given R doesn't have to read in the file as an S4 wave object. More on this later. 
 
-```{r sox images in bash, engine='bash'}
-
-#Or try a bash command using sox
+```{r SoX images in bash, engine='bash', include = TRUE}
+#Or try a bash command using SoX
 cd /users/alexandremacphail/desktop/testwav-1 && for file in *.wav; do outfile="${file%.*}.png"; title_in_pic="${file%.*}"; sox "$file" -n spectrogram -l -m -t "$title_in_pic" -o "$outfile"; done
 
 ```
 
-You'll notice that we are not manipulating any of the features of the wav file - simply reading in the raw acoustic information. You can read the pngs back into R using and create an array of images. See **magick** for more functionality. 
+You'll notice that we are not manipulating any of the features of the wav file - simply reading in the raw acoustic information. You can read the images back into R using and create an array of images. See [`magick`](https://cran.r-project.org/web/packages/magick/index.html) for more functionality. 
 
-```{r Read sox images}
-
+```{r Read SoX images, fig.width = 5, fig.height = 3, fig.align = 'center', include = TRUE}
 pics <- list.files("/users/alexandremacphail/desktop/testwav-1",".png", recursive = T, full.names = T)
 images <- image_read(pics)
-image_append(image_border(images, "black", "5x5"), stack = TRUE)
+image_append(image_border(images, "black", "3x3"), stack = TRUE)
 
 ```
 
-### **Metadata dependencies for acoustic data**
+Manipulating spectrograms can be done by ...
 
-Wildife Acoustics, Frontier, AudioMoth, 
+```{r Manipulating spectral signatures}
 
 
-Let's look at the different ways various ARUs output their data and how we can manipulate it.
-
+```
 
 ### **Photo file formats**
 
+Stay tuned!
 
 
 
+
+--------------------------------------
+
+## **Working with messy data: an introduction to environmental sensor data management**
+
+### **From the field to the office**
+
+Familiarity with processes, protocols, equipment and data is a huge first step in understanding how to manage environmental sensor data. Check with your study design or monitoring plan to ensure that you are correctly managing your data prior to heading into the field. **wildRtrax** doesn't focus on the field components of the data flows but is heavily dependent on it. Acoustic data has certain metadata dependencies that can be extracted from certain aspects of the raw data, but robust field or *visit* metadata as it's called in **wildRtrax** is important to support the quality control process of the incoming sensor data.  
+
+In brief, the flow of environmental sensor data from the field can be outlined in few basic steps. The main portal to be used in each step is also noted:
+
+* Program and prepare the unit (*Equipment inventorying and maintenance protocols  - WildTrax*)
+* Deploy the unit in the field (*Visit metadata - WildTrax*)
+* Service the unit if it is staying in place, otherwise retrieve the unit along with the data (*Visit metadata - WildTrax*)
+* Backup, organize and quality control the sensor data (*Data management - wildRtrax*)
+* Link the visit metadata to sensor data (*Data management - WildTrax*)
+* Upload sensor data (*Data management - WildTrax*)
+* Process data (*Processing - WildTrax*)
+* Post-processing quality control (*Processing - WildTrax*)
+* Data publication, release and sharing (*Data Discovery - WildTrax*)
+
+### **Metadata dependencies for acoustic data**
+
+You'll notice in the `audio_files` tibble, there is the *filename* column. The **wildRtrax** framework prefers that the file name string from which the data is deriving is composed of two parts: a *spatial* component and a *temporal* component. We call these fields the *location* and the *recording_date_time* of the recording, respectively. The location and date and time should be critical pieces of information that should be checked when you are visiting environmental sensors in the field. 
+
+* **Location**
+  * Is a string (or character) identifying a unique spatial location of your study
+  * The following is currently supported:
+    * Lorem ipsum
+
+* **Date time**
+  * Contains a POSIX.ct date time
+  * The following is currently supported: 
+    * lorem ipsum 
+
+Let's expand on the `audio_files` tibble a bit more to extract this information:
+
+```{r Adding spatiotemporal metadata, include = TRUE}
+audio_files <-
+  dir_ls(path = '/users/alexandremacphail/desktop/testwav-1/',
+         recurse = TRUE,
+         regexp = '\\.wac$|\\.w4v$|\\.wav$|\\.mp3$|\\.flac$') %>>%
+  "Scanning audio files ..." %>>%
+  future_map_dbl(., .f = ~ file_size(.), .progress = TRUE) %>%
+  enframe() %>%
+  mutate(size_Mb = round(value / 10e5, digits = 2)) %>%
+  select(filepath = name, size_Mb) %>%
+  mutate(filename = str_replace(basename(filepath), "\\..*", "")) %>%
+  mutate(ftype = file_ext(filepath)) %>%
+  # Parse location and recording date time
+  separate(
+    filename,
+    into = c("location", "recording_date_time"),
+    sep = "(?:_0\\+1_|_|__0__|__1__)", #Deals with Wildlife Acoustics standard format
+    extra = "merge",
+    remove = FALSE
+  ) %>%
+  mutate(
+    recording_date_time = ymd_hms(recording_date_time),
+    julian = yday(recording_date_time), #Let's add julian date ...
+    year = year(recording_date_time) #... and year too!
+  ) %>%
+  arrange(location, recording_date_time)
+
+audio_files
+
+```
+
+Great! So now we know when and where all the audio data was from. 
+
+Another important aspect of collecting long-duration acoustic data is ensuring that the number of recordings that were planned on being collected are in fact there. Wildlife Acoustics has a proprietary formatting mechanism called a *SET file* that can be used to program their ARUs to a set schedule. This functionality is not transferable between different makes of ARUs, so a standard needs to be established. Given that each make and model will have a way of programming this schedule, we can simple index it by the spatial and temporal information. 
+
+Let's give our pipe an indexing function and a larger acoustic data set to work with...
+
+```{r Add time indexing, include = TRUE} 
+tic()
+audio_files <- #And a timer to see how long things take!
+  dir_ls(path = '/volumes/budata/abmi/2018/01/abmi-0320/abmi-0320-ne',
+         recurse = TRUE,
+         regexp = '\\.wac$|\\.w4v$|\\.wav$|\\.mp3$|\\.flac$') %>>%
+  "Scanning audio files ..." %>>%
+  future_map_dbl(., .f = ~ file_size(.), .progress = TRUE) %>%
+  enframe() %>%
+  mutate(size_Mb = round(value / 10e5, digits = 2)) %>%
+  select(filepath = name, size_Mb) %>%
+  mutate(filename = str_replace(basename(filepath), "\\..*", "")) %>%
+  mutate(ftype = file_ext(filepath)) %>%
+  separate(
+    filename,
+    into = c("location", "recording_date_time"),
+    sep = "(?:_0\\+1_|_|__0__|__1__)",
+    extra = "merge",
+    remove = FALSE
+  ) %>%
+  mutate(
+    recording_date_time = ymd_hms(recording_date_time),
+    julian = yday(recording_date_time),
+    year = year(recording_date_time)
+  ) %>%
+  arrange(location, recording_date_time) %>%
+  group_by(location, year, julian) %>% #Add time indexing
+  mutate(time_index = row_number()) %>%
+  ungroup() %>%
+  select(location, year, filename, size_Mb, ftype, recording_date_time, julian, time_index)
+toc()
+
+sum(audio_files$size_Mb)/1000 #Total size of directory in GB
+
+```
+
+Looks like we are recording eight times a day throughout various times of day. But this is just one location of data and we already had to scan through ~30GB of wac data. If these were wav, it would be ~60GB. Monitoring programs usually rely on collection of data from a multitude of sensors. This is where data compression comes in handy, but when you scale to the level of a multi-year monitoring program you can't avoid the data accumulation issue. See **Case studies** for more details.
+
+```{r, echo = TRUE}
+
+ui <- pageWithSidebar(
+  headerPanel("Data accumulation"),
+  sidebarPanel(
+    sliderInput("variable1","Days:",
+                min = 0, max = 365,
+                value = 1),
+    sliderInput("variable2","Audio seconds recorded per day:",
+                min = 0, max = 86400,
+                value = 600),
+    sliderInput("variable3","Sample rate:",
+                min = 0, max = 48000,
+                value = 44100),
+    sliderInput("variable4","Locations surveyed:",
+                min = 0, max = 1000,
+                value = 1)
+  ),
+  mainPanel(
+    tableOutput("values"),
+    plotOutput("plot1")
+  )
+)
+
+server <- function(input, output) {
+  sliderValues <- reactive({ (input$variable1 * input$variable4 * (input$variable3*16*2*input$variable2)/8)*0.000000000001 })
+  pl <- reactive({ sliderValues() })
+  output$values <- renderText({paste0("Data accumulated: ",sliderValues(), " TB")})
+  output$plot1 <- renderPlot({
+    ggplot(pl(), aes(x = x, y = y)) + geom_point()
+  })
+}
+  
+shinyApp(ui, server)
+
+```
+
+### **Data volume, storage and computing power**
+
+OK so we know we're going to accrue a lot of data using environmental sensors. Are there some ways we can reduce this?
+
+* *Are you interested in one or many species?*
+  * A community analysis would require a broad spectrum range to record in or analyze or with more data being collected to account for imperfect detection. Whereas with a single or multi-species approach, you may only need to look at a narrow frequency range in order to detect the species. 
+    * Show example with busy dawn recording vs BCFR CI3
+* *What frequency range does your species vocalize in?*
+  * If you know the frequency range your species vocalizes in, you may be able to *change the sampling rate*, apply a *band-pass filter* or *compress the data*
+    * Show what changing the sampling rate does
+    * Show what a band-pass filter does
+    * Show what compressing data does
+* *Data quality or data volume?*
+  * All methods above will inherently reduce data quality in favour of also reducing data volume. With more complex acoustic information comes larger files.
+    * Show size of compressed audio files between dawn summer and winter nights (extremes)
+  
+What if none of the above are acceptable? Are there other ways we can overcome this big data hurdle?
+
+You might already be aware that **wildRtrax** and some of the functions previously described rely on *parallel computing* in order to speed up function run times. In general, the more cores you have, the faster you can run operations. For example `future_map_dbl` is a parallel computing function based off of `purrr`s `map_dbl`. See also its `pmap_dbl` cousin.
+
+* Show microbenchmarking blog for future_map
+
+
+### Scanning through data: *wt_aru_scanner*
 
 ```{r setup}
 
 #library(wildRtrax)
 
 ```
-
---------------------------------------
-
-## **Working with messy data: data management**
-
-### From the field to the office
-
-Familiarity with processes, protocols, equipment and data is a huge first step in understanding management processes for environmental sensor data. **wildRtrax** doesn't focus on the field components of the process but is heavily dependent on it as it where the metadata 
-
-More information on project-specific sampling designs can be found in the **Analytics** section
-
-**Set files** are used in the Wildlife Acoustics units. 
-
-### Data volume, storage and computing power
-
-
-
-### Scanning through data: *wt_aru_scanner*
 
 ### Assessing the situation
 
@@ -226,6 +375,12 @@ More information on project-specific sampling designs can be found in the **Anal
 ------------------------------------------------------------------------
 
 ## **Analytics**
+
+### Study design case study 1: 
+
+### Study design case study 2:
+
+### Study design case study 3:
 
 ### Seasonal phenology
 
