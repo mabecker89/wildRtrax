@@ -290,7 +290,7 @@ sum(audio_files$size_Mb)/1000 #Total size of directory in GB
 
 Looks like we are recording eight times a day throughout various times of day. But this is just one location of data and we already had to scan through ~30GB of wac data. If these were wav, it would be ~60GB. Monitoring programs usually rely on collection of data from a multitude of sensors. This is where data compression comes in handy, but when you scale to the level of a multi-year monitoring program you can't avoid the data accumulation issue. See **Case studies** for more details.
 
-```{r, echo = TRUE}
+```{r, echo = TRUE, fig.align='center'}
 
 ui <- pageWithSidebar(
   headerPanel("Data accumulation"),
@@ -298,29 +298,23 @@ ui <- pageWithSidebar(
     sliderInput("variable1","Days:",
                 min = 0, max = 365,
                 value = 1),
-    sliderInput("variable2","Audio seconds recorded per day:",
-                min = 0, max = 86400,
-                value = 600),
+    sliderInput("variable2","Audio minutes recorded per day:",
+                min = 0, max = 1440,
+                value = 10),
     sliderInput("variable3","Sample rate:",
                 min = 0, max = 48000,
                 value = 44100),
     sliderInput("variable4","Locations surveyed:",
                 min = 0, max = 1000,
-                value = 1)
+                value = 1),
+    tableOutput("values")
   ),
-  mainPanel(
-    tableOutput("values"),
-    plotOutput("plot1")
-  )
-)
+  mainPanel())
 
 server <- function(input, output) {
-  sliderValues <- reactive({ (input$variable1 * input$variable4 * (input$variable3*16*2*input$variable2)/8)*0.000000000001 })
+  sliderValues <- reactive({ (input$variable1 * input$variable4 * (input$variable3*16*2*input$variable2*60)/8)*0.000000000001 })
   pl <- reactive({ sliderValues() })
   output$values <- renderText({paste0("Data accumulated: ",sliderValues(), " TB")})
-  output$plot1 <- renderPlot({
-    ggplot(pl(), aes(x = x, y = y)) + geom_point()
-  })
 }
   
 shinyApp(ui, server)
@@ -375,6 +369,8 @@ You might already be aware that **wildRtrax** and some of the functions previous
 ------------------------------------------------------------------------
 
 ## **Analytics**
+
+### Cross-walking WildTrax with your entire data set
 
 ### Study design case study 1: 
 
