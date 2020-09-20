@@ -50,7 +50,7 @@ This document contains an outline for how to use the R package **wildRtrax** for
 
 ### What is **WildTrax**?
 
-[**WildTrax**](https://wwww.wildtrax.ca) is a web-enabled portal to centralize, store, manage and share environmental sensor data. It was developed by the [Alberta Biodiversity Monitoring Institute](https://abmi.ca) and the [Bioacoustic Unit](https://bioacoustic.abmi.ca). **wildRtrax** serves as a parallel design and indicator to analytics and functions that can be developed in **WildTrax**. 
+[**WildTrax**](https://www.wildtrax.ca) is a web-enabled portal to centralize, store, manage and share environmental sensor data. It was developed by the [Alberta Biodiversity Monitoring Institute](https://abmi.ca) and the [Bioacoustic Unit](https://bioacoustic.abmi.ca). **wildRtrax** serves as a parallel design and indicator to analytics and functions that can be developed in **WildTrax**. 
 
 ### What R packages does **wildRtrax** depend on?
 
@@ -108,7 +108,7 @@ audio_files <-
     filename = basename(name),
     filetype = as_factor(file_ext(filename)),
     compressed = case_when(filetype %in% c('wac', 'mp3', 'flac', '.w4v') ~ TRUE, TRUE ~ FALSE)) %>%
-  dplyr::select(name, filename, size, filetype, compressed)
+  select(name, filename, size, filetype, compressed)
   
 ```
 
@@ -117,7 +117,48 @@ ggplot(audio_files, aes(x = reorder(filetype, size) , y = size, fill = compresse
 
 ```
 
-Even using a high bit rate (b = 320) for the mp3 files, the reduction in size between file formats is significant. Nevertheless, loss of information in the audio data is an important consideration to make when converting or analyzing audio files. mp3 files that are stored in WildTrax for transcription, for example, truncate all acoustic data above 12 kHz. This is an important consideration to make when studying a species of interest - ensure the *sample rate (x2 for stereo)* and *species frequency range* match. 
+Even using a high bit rate (b = 320) for the mp3 files, the reduction in size between formats is significant. Nevertheless, loss of information in the audio data is an important consideration to make when converting or analyzing audio files. mp3 files that are stored in WildTrax for transcription, for example, truncate all acoustic data above 12 kHz. This is an important consideration to make when studying a species of interest - ensure the *sample rate (x2 for stereo)* and *species frequency range* match.
+
+It is important to understand how an R environment deals with audio data as well. wav files are ubiquitously used and compatible for editing and manipulation as the uncompressed format provides a raw standard. The `tuneR` package has functions that are used to read, write and manipulate acoustic recordings. The `readWave` function and the `header` argument can be used to either store information in R as the `S4 wave object` proper, or a list with the audio metadata.
+
+```{r Examples of reading acoustic data into R, include = TRUE, echo = TRUE}
+
+file <- c('/users/alexandremacphail/desktop/testwav-1/ABMI-0320-NE_0+1_20180529_054500.wav')
+
+wave_t <- readWave(file, header = T) #True header format
+
+wave_f <- readWave(file, header = F)
+
+list(wave_t, wave_f)
+
+```
+
+You can access the *objects* in `wave_t` through a `$` as you would a normal list. When `header = FALSE` and you are reading in the entire wav file, you can access *slots* of the `S4` object using `@`. 
+
+```{r Accessing S4 and lists, include = TRUE, echo = TRUE}
+
+sound_length_S4 <- round((wave_f@left / wave_f@samp.rate), 2)
+
+#Is equivalent to:
+
+sound_length_list <- wave_t$samples / wave_t$sample.rate
+  
+list(sound_length_S4, sound_length_list)
+
+```
+
+When it comes to different file formats `read_wac`, `wav2flac`, `readMP3` and `read_audio` are functions that all converts these format to an S4 wave object. 
+
+```{r, include = TRUE, echo = TRUE}
+
+file_wac <- c('/users/alexandremacphail/desktop/testwav-1/ABMI-0320-NE_0+1_20180529_054500.wac')
+file_flac <- c('/users/alexandremacphail/desktop/testwav-1/ABMI-0320-NE_0+1_20180529_054500.flac')
+
+wac <- read_wac(file_wac)
+
+flac <- wav2flac(file_flac, reverse = TRUE) #If needing to convert to a flac use reverse = FALSE
+
+```
 
 ### **Spectrograms**
 
@@ -161,7 +202,7 @@ You'll notice that we are not manipulating any of the features of the wav file -
 ```{r Read SoX images, fig.width = 5, fig.height = 3, fig.align = 'center', include = TRUE}
 pics <- list.files("/users/alexandremacphail/desktop/testwav-1",".png", recursive = T, full.names = T)
 images <- image_read(pics)
-image_append(image_border(images, "black", "3x3"), stack = TRUE)
+image_append(image_border(images, "black", "3x3"), stack = FALSE)
 
 ```
 
@@ -204,9 +245,9 @@ In brief, the flow of environmental sensor data from the field can be outlined i
 You'll notice in the `audio_files` tibble, there is the *filename* column. The **wildRtrax** framework prefers that the file name string from which the data is deriving is composed of two parts: a *spatial* component and a *temporal* component. We call these fields the *location* and the *recording_date_time* of the recording, respectively. The location and date and time should be critical pieces of information that should be checked when you are visiting environmental sensors in the field. 
 
 * **Location**
-  * Is a string (or character) identifying a unique spatial location of your study
+  * Is a string (or character vector) identifying a unique spatial location of your study
   * The following is currently supported:
-    * Lorem ipsum
+    * '^(.*?)(?:_+0\+1_?|_+0_?)?[_-](\d{12,14})(\.\w{2,6})?$' *or* '^(.*?)(?:_+0\+1_?|_+0_?)?[_-](\d{8})[-_\$](\d{4,6})(\.\w{2,6})?$' *or* '^(.*?)(?:_+0\+1_?|_+0_?)?[_-](\d{4})[_-](\d{2})[_-](\d{2})[_-\$](\d{2})[_-:](\d{2})[_-:]?(\d{0,2})(\.\w{2,6})?$'
 
 * **Date time**
   * Contains a POSIX.ct date time
@@ -306,10 +347,9 @@ ui <- pageWithSidebar(
                 value = 44100),
     sliderInput("variable4","Locations surveyed:",
                 min = 0, max = 1000,
-                value = 1),
-    tableOutput("values")
+                value = 1)
   ),
-  mainPanel())
+  mainPanel(tableOutput("values")))
 
 server <- function(input, output) {
   sliderValues <- reactive({ (input$variable1 * input$variable4 * (input$variable3*16*2*input$variable2*60)/8)*0.000000000001 })
@@ -355,6 +395,14 @@ You might already be aware that **wildRtrax** and some of the functions previous
 ### Assessing the situation
 
 ### Resolving data structure issues: *Python functions*
+
+
+
+```{r}
+
+
+
+```
 
 ### Summarizing results
 

@@ -63,14 +63,14 @@ wt_invoices_status <- function(users, cycle, outpath) {
     filter(user_name %in% users) %>%
     filter(year_month %in% c(cycle)) %>%
     dplyr::summarise(min_to_pay_for=sum(min_to_pay_for))
-  invoicesum$dollars<-dollar(invoicesum$min_to_pay_for*1.35)
+  invoicesum$dollars<-dollar(invoicesum$min_to_pay_for*1.43)
   invoicesum %>%
     group_by(user_name) %>%
     group_walk(~ write.csv(.x, paste(.y$user_name,"-invoice_",Sys.Date(),".csv",sep='')))
 }
 
 #Example
-wt_inv <- wt_invoices_status(users = c("Tyne Baker"),
-                             cycle = '2020-05',
-                             outpath = '/users/alexandremacphail/desktop')
+wt_inv <- wt_invoices_status(users = c("demkoad@gmail.com", "Christopher Moser-Purdy", "Jillian Slater", "Brandon Law", "bprobinson@live.ca", "s.shappas@hotmail.com", "Scott Wilson", "Christopher Wagner"),
+                             cycle = '2020-08',
+                             outpath = '/users/alexandremacphail/desktop/2020-2021 Listening/Invoices/Aug')
 

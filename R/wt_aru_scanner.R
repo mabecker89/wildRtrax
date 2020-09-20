@@ -32,7 +32,7 @@ library(ssh)
 
 #Example usage
 tw <-
-  wt_aru_scanner('/users/alexandremacphail/desktop/testwav', '\\.wav$|\\.wac$')
+  wt_aru_scanner('/volumes/budata/abmi/2019/01/abmi-0409', '\\.wav$|\\.wac$')
 
 #Look at a wave object
 f<-read_audio('/users/alexandremacphail/desktop/testwav/test2/ABMI-0509-SW_0+1_20190319_141314.wac')
@@ -77,7 +77,7 @@ wt_aru_scanner <- function(path, file_type) {
     "Audio files scanned. Extracting metadata ..." %>>% #MARCUS HALPPPP
     group_by(ftype) %>% #Group by filetype to lighten the futures load if need be (only when storing wave objects)
     mutate(data = future_map_if(.x = filepath, #choose the filepath
-                             .p = ftype == 'wav', #predicate with type
+                             .p = (ftype == 'wav'), #predicate with type
                              .f = ~ readWave(.x, from = 0, to = Inf, units = "seconds", header = T), #if true, reads a wave file as a list because of header = T. You don't want it to be false otherwise it will read it as an S4 wave object **too big**
                              .else = ~ lst(sample_rate = read_audio(.x, from = 0, to = Inf)@samp.rate, #Create a list that mimics the header = T list that comes out of readWave. Note @ pipe for S4 objects
                                            channels = read_audio(.x, from = 0, to = Inf)@stereo,
@@ -110,7 +110,12 @@ wt_aru_scanner <- function(path, file_type) {
       sample_rate,
       n_channels
     ) %>%
-    unnest(c("length_seconds", "sample_rate", "n_channels")) #take just one value from the nested cells
+    unnest(c("length_seconds", "sample_rate", "n_channels")) %>%
+    mutate(length_seconds = as.integer(length_seconds),
+           sample_rate = as.integer(sample_rate),
+           n_channels = as.integer(n_channels))
+    #take just one value from the nested cells
+  toc()
   return(as_tibble(dfraw)) #Output as a tibble
 }
 

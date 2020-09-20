@@ -4,7 +4,7 @@
 #' Requires installation of the QUT audio-analysis packagae as well for geophonic indices. Perhaps include in function directly!
 #'
 #' @param df #wt_aru_scanner dataframe output
-#' @param subsample_templates # choose from a variety of subsampling techniques include the ABMI stratified sampling design or the BU standard dawn chorus.
+#' @param blocks # choose from a variety of subsampling techniques include the ABMI stratified sampling design or the BU standard dawn chorus.
 #' manual overrides and let you select through the remaining fields below
 #' @param jd_start #date to start with
 #' @param jd_end #date to end with
@@ -131,7 +131,7 @@ wt_aru_assign <-
           Entropy_average = mean(EntropyOfAverageSpectrum),
           NDSI = mean(Ndsi)
         )
-      df_out <- merge(df_out, dfgeo2, by.x = "filename", by.y = "FileName")
+      df_out <- merge(tw_try, dfgeo2, by.x = "filename", by.y = "FileName")
     }
     else if (blocks == 'BU_days') {
       #Do the BU subsampling
@@ -396,10 +396,10 @@ wt_aru_assign <-
     }
     plot1 <-
       ggplot(df_out, aes(x = as.Date(recording_date_time, "%b-%d")), alpha = 0.4) +
-      geom_point(aes(y = biophony), colour = "blue") +
-      geom_smooth(aes(y = biophony, colour = "blue"), fill = "#E3EDFB") +
-      geom_point(aes(y = anthrophony), colour = "red") +
-      geom_smooth(aes(y = anthrophony, colour = "red"), fill = "#FBE3E3") +
+      # geom_point(aes(y = biophony), colour = "blue") +
+      # geom_smooth(aes(y = biophony, colour = "blue"), fill = "#E3EDFB") +
+      # geom_point(aes(y = anthrophony), colour = "red") +
+      # geom_smooth(aes(y = anthrophony, colour = "red"), fill = "#FBE3E3") +
       geom_point(aes(y = NDSI), colour = "blue") +
       geom_smooth(aes(y = NDSI, colour = "blue"), fill = "#E3EDFB") +
       geom_point(aes(y = AcousticComplexity), colour = "blue") +
@@ -433,7 +433,7 @@ wt_aru_assign <-
     pics <- list.files("/users/alexandremacphail/blpw/Towsey.Acoustic","\\__2Maps.png$", recursive = T, full.names = T)
     images <- image_read(pics)
     images <- image_append(images)
-    r <- image_write(images, "MERGED_BLPW2.png")
+    r <- image_write(images, "mtest.png")
     r
     dev.off()
     return(list(df_out, plot1))
@@ -441,7 +441,7 @@ wt_aru_assign <-
 
 
 plot2 <-
-  ggplot(blpw_s[[1]], aes(x = as.Date(recording_date_time, "%b-%d")), alpha = 0.4) +
+  ggplot(df_out, aes(x = as.Date(recording_date_time, "%b-%d")), alpha = 0.4) +
   # geom_point(aes(y = biophony), colour = "blue") +
   # geom_smooth(aes(y = biophony, colour = "blue"), fill = "#E3EDFB") +
   # geom_point(aes(y = anthrophony), colour = "red") +
@@ -477,11 +477,12 @@ plot2
 
 
 
-blpw_try<-blpw_r %>%
-  filter(time_index==3)
+tw_try<-tw %>%
+  filter(time_index==3 & ftype=='wav') %>%
+  sample_frac(0.1)
 
 tic()
-blpw_s <- wt_aru_assign(blpw_r, blocks = '')
+blpw_s <- wt_aru_assign(tw_try, blocks = '')
 toc()
 
 

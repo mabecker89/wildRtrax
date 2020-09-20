@@ -18,6 +18,7 @@ from user_status
 order by 3 asc;
 
 ```
+
 # Start R chunk
 ```{r}
 
