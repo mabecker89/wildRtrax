@@ -8,7 +8,7 @@
 #' @return This function returns an S4 object of class PostgreSQLConnection
 
 # Establish connection to Wildtrax database
-wt_conn <- function(username, password) {
+wt_connect <- function(username, password) {
   conn <- DBI::dbConnect(
     drv = dbDriver("PostgreSQL"),
     dbname = "wildtrax",

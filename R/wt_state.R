@@ -1,15 +1,15 @@
-#Invoice function}
+#' Invoice function
 
-# Workflow
-# 1) Query billable minutes from the database (calculates number of audio minutes)
-# 2) Create a list of people to invoice
-# 3) Filter query and apply dollar amount to billable minutes
-# 4) Split the dataframe and create an invoice template for each person
-# 5) Query the database for the task updates
-# 6) Create a user status summary as well to track progress
+#' Workflow
+#' 1) Query billable minutes from the database (calculates number of audio minutes)
+#' 2) Create a list of people to invoice
+#' 3) Filter query and apply dollar amount to billable minutes
+#' 4) Split the dataframe and create an invoice template for each person
+#' 5) Query the database for the task updates
+#' 6) Create a user status summary as well to track progress
 
 
-wt_invoices_status <- function(users, cycle, outpath) {
+wt_state <- function(users, cycle, outpath) {
   setwd(outpath)
   #Get billable minutes data
   invoices <- as_tibble(dbGetQuery(conn = con,'select * from aru.user_billable_minutes'))
@@ -41,7 +41,7 @@ wt_invoices_status <- function(users, cycle, outpath) {
   taskupdate$newdate <- format(taskupdate$newdate, "%Y-%m-%d")
   taskupdate<-taskupdate %>%
     group_by(user_name, project_full_nm, newdate, status_task_type) %>%
-    dplyr::summarise(tot = sum(mins))
+    summarise(tot = sum(mins))
   # Create a separate plot for each value and store each plot in a list
   update.list = lapply(sort(unique(taskupdate$user_name)), function(i) {
     ggplot(taskupdate[taskupdate$user_name==i,], aes(x=newdate, y=tot, fill=interaction(factor(project_full_nm),factor(status_task_type)))) +
@@ -55,9 +55,10 @@ wt_invoices_status <- function(users, cycle, outpath) {
       ggtitle("Status summary for {user_name}") +
       scale_fill_viridis_d() +
       guides(fill=guide_legend(title="Project Name")) +
+      theme(legend.text=element_text(size=4)) +
       ggsave(path=outpath,filename=paste0(i,"-status_",Sys.Date(),".pdf"))
   })
-  #Filter and summarise invoice data
+  #Filter and summarize invoice data
   invoicesum <- invoices %>%
     group_by(year_month,user_name,project_full_nm) %>%
     filter(user_name %in% users) %>%
@@ -70,7 +71,7 @@ wt_invoices_status <- function(users, cycle, outpath) {
 }
 
 #Example
-wt_inv <- wt_invoices_status(users = c("demkoad@gmail.com", "Christopher Moser-Purdy", "Jillian Slater", "Brandon Law", "bprobinson@live.ca", "s.shappas@hotmail.com", "Scott Wilson", "Christopher Wagner"),
+wt_inv <- wt_state(users = c("steve.enid", "demkoad@gmail.com", "Christopher Moser-Purdy", "Jillian Slater", "Brandon Law", "bprobinson@live.ca", "s.shappas@hotmail.com", "Scott Wilson"),
                              cycle = '2020-08',
-                             outpath = '/users/alexandremacphail/desktop/2020-2021 Listening/Invoices/Aug')
+                             outpath = '/users/alexandremacphail/seo')
 
