@@ -72,7 +72,7 @@ If you think you have found a bug in **wildRtrax**, you should report it to deve
 
 ### Can I contribute to **wildRtrax**?
 
-Yes! **wildRtrax** is dependent on user contribution and all feedback is welcome. If you have problems with **wildRtrax**, it may be as simple as incomplete documentation. Feature requests also are welcome, but they are not necessarily fulfilled. A new feature will be added if it is easy to do and it looks useful to the userbase of the package, or if you submit fully annotated code.
+Yes! **wildRtrax** is dependent on user contribution and all feedback is welcome. If you have problems with **wildRtrax**, it may be as simple as incomplete documentation. Feature requests also are welcome, but they are not necessarily fulfilled. A new feature will be added if it is easy to do and it looks useful to the user base of the package, or if you submit fully annotated code.
 
 
 
@@ -152,6 +152,7 @@ When it comes to different file formats `read_wac`, `wav2flac`, `readMP3` and `r
 ```{r, include = TRUE, echo = TRUE}
 
 file_wac <- c('/users/alexandremacphail/desktop/testwav-1/ABMI-0320-NE_0+1_20180529_054500.wac')
+
 file_flac <- c('/users/alexandremacphail/desktop/testwav-1/ABMI-0320-NE_0+1_20180529_054500.flac')
 
 wac <- read_wac(file_wac)
