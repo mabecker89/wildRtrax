@@ -6,6 +6,13 @@
 wt_carrefour <- function() {
   input <- dlgInput("Enter a WildTrax ARU project name: ", Sys.info()["user"])$res
   multi <- as_tibble(dbGetQuery(conn = con, paste0('select * from aru.report_v where "project" ~* \'',input,'\'')))
+  multi <- multi %>%
+    mutate(species_individual_name = case_when(
+             abundance == "TMTC" ~ 4,
+             abundance == "CI 1" ~ 1,
+             abundance == "CI 2" ~ 5,
+             abundance == "CI 3" ~ 20,
+             TRUE ~ as.numeric(species_individual_name)))
   multi2 <- multi %>%
     select(location, transcriber, species_code, species_individual_name) %>%
     distinct() %>%
@@ -14,29 +21,28 @@ wt_carrefour <- function() {
     summarise(count = n()) %>%
     mutate(count2 = sum(count)) %>%
     ungroup() %>%
+    group_by(location, species_code) %>%
+    add_count(name = "rich") %>%
+    ungroup() %>%
     select(-species_individual_name, -count) %>%
-    group_by(species_code, location, transcriber, count2) %>%
+    group_by(species_code, location, transcriber, rich, count2) %>%
     distinct() %>%
     pivot_wider(names_from = species_code, values_from = count2, values_fill = 0) %>%
     as_tibble() %>%
     mutate_if(is.integer, as.numeric)
   multi_type <- multi2 %>%
-    select(location, transcriber) %>%
+    select(location, transcriber, rich) %>%
     distinct()
-  t3 <- rda(multi2[,-c(1:2)])
+  t3 <- rda(multi2[,-c(1:3)] ~ transcriber + Condition(location, rich), data = multi_type)
+  t3 <- ordistep(t3)
   t3scores <- scores(t3, display = "sites") %>%
     as.data.frame() %>%
     rownames_to_column("site") %>%
     bind_cols(., multi_type)
   t3vect <- scores(t3, display = "species") %>%
     as.data.frame()
-  m_loc<-adonis(multi2[,-c(1:2)] ~ location, data = multi_type)
-  m_obs<-adonis(multi2[,-c(1:2)] ~ transcriber, data = multi_type)
-  m_add<-adonis(multi2[,-c(1:2)] ~ location + transcriber, data = multi_type)
-  m_int<-adonis(multi2[,-c(1:2)] ~ location * transcriber, data = multi_type)
-  model.list <- list(m_loc, m_obs, m_add, m_int)
   plot_PCA <- ggplot() +
-    geom_point(data = t3scores, aes(x = PC1, y = PC2, color = transcriber)) +
+    geom_point(data = t3scores, aes(x = PC1, y = PC2, color = transcriber), alpha = 0.6) +
     scale_colour_viridis_d() +
     geom_vline(xintercept = c(0), color = "#A19E99", linetype = 2) +
     geom_hline(yintercept = c(0), color = "#A19E99", linetype = 2) +
@@ -45,9 +51,9 @@ wt_carrefour <- function() {
     blanktheme +
     labs(x = paste0("PC1 ", round(t3$CA$eig[[1]],2), '%'),
          y = paste0("PC2 ", round(t3$CA$eig[[2]],2), '%'),
-         title = paste0("Principal Components Analysis for WildTrax Project: ", input))
-  return(list(plot_PCA, model.list))
+         title = paste0("Principal Components Analysis for WildTrax Project: ", input)) +
+    stat_ellipse(type = "t", level = 0.67)
+  return(plot_PCA)
 }
 
-wt_carrefour()
 
