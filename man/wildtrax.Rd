@@ -6,7 +6,7 @@
 \alias{wildRtrax-package}
 \title{wildRtrax: Queries, cleaning, analysis, and quality control of data from the WildTrax database in R}
 \description{
-This package provides a set of functions to query environmental sensor data from the WildTrax platform, as well as perform basic data cleaning, analysis, and quality control.
+This package provides a set of functions for environmental sensor data management and analysis to and from the WildTrax platform. 
 }
 \seealso{
 Useful links:
